@@ -1,3 +1,17 @@
+# Admin Account (auto-created at startup)
+
+Username: admin
+Email: admin@clearinsure.com
+Password: Admin@1234
+
+This account is created automatically when the app starts if it does not exist.
+# Admin Account (for development)
+
+Username: admin
+Email: admin@clearinsure.com
+Password: Admin@1234
+
+Use these credentials to log in as admin. Change password in production.
 # Development Guide: Podman, Podman Compose & GitHub
 
 ## 1. Prerequisites

@@ -1,3 +1,10 @@
+# Admin Account (for development)
+
+Username: admin
+Email: admin@clearinsure.com
+Password: Admin@1234
+
+Use these credentials to log in as admin. Change password in production.
 
 # Podman & Podman Compose for Windows
 
@@ -16,7 +23,19 @@ git clone <your-repo-url>
 cd clearviewins6
 ```
 
-## 4. Building & Running the App
+## 4. Database Migrations (Authentication Tables)
+
+Your database file will be created in the project root as app.db.
+
+Run these commands in your project directory:
+
+```bash
+flask db init           # Initialize migrations (first time only)
+flask db migrate -m "Initial tables for auth"  # Generate migration scripts
+flask db upgrade        # Apply migrations to the database
+```
+
+## 5. Building & Running the App
 ### Build the image (first time only)
 ```bash
 podman build -t clearviewins6 .

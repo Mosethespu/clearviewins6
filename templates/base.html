@@ -24,7 +24,16 @@
 				</ul>
 				<span class="navbar-text ms-3">
 					{% if current_user is defined and current_user.is_authenticated %}
-						Welcome, {{ current_user.username }}
+						{% if current_user.role == 'admin' %}
+							<a href="{{ url_for('admin_dashboard') }}" class="text-light fw-bold text-decoration-none">Welcome, {{ current_user.username }}</a>
+						{% elif current_user.role == 'customer' %}
+							<a href="{{ url_for('customer_dashboard') }}" class="text-light fw-bold text-decoration-none">Welcome, {{ current_user.username }}</a>
+						{% elif current_user.role == 'insurer' %}
+							<a href="{{ url_for('insurer_dashboard') }}" class="text-light fw-bold text-decoration-none">Welcome, {{ current_user.username }}</a>
+						{% elif current_user.role == 'regulator' %}
+							<a href="{{ url_for('regulator_dashboard') }}" class="text-light fw-bold text-decoration-none">Welcome, {{ current_user.username }}</a>
+						{% endif %}
+						<a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm ms-2">Log Out</a>
 					{% else %}
 						<span class="text-light">Not logged in</span>
 					{% endif %}

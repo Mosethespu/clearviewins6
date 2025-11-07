@@ -5,40 +5,33 @@
         <div class="col-md-5 col-lg-4">
             <div class="card shadow-lg p-4">
                 <h2 class="mb-4 text-center text-primary">Sign Up</h2>
-                <form>
+                <form method="POST">
+                    {{ form.hidden_tag() }}
                     <div class="mb-3">
-                        <label for="first_name" class="form-label">First Name</label>
-                        <input type="text" class="form-control" id="first_name" placeholder="Enter your first name" required>
+                        {{ form.username.label(class="form-label") }}
+                        {{ form.username(class="form-control") }}
                     </div>
                     <div class="mb-3">
-                        <label for="second_name" class="form-label">Second Name</label>
-                        <input type="text" class="form-control" id="second_name" placeholder="Enter your second name" required>
+                        {{ form.email.label(class="form-label") }}
+                        {{ form.email(class="form-control") }}
                     </div>
                     <div class="mb-3">
-                        <label for="email" class="form-label">Email address</label>
-                        <input type="email" class="form-control" id="email" placeholder="Enter your email" required>
+                        {{ form.password.label(class="form-label") }}
+                        {{ form.password(class="form-control") }}
                     </div>
                     <div class="mb-3">
-                        <label for="password" class="form-label">Password</label>
-                        <input type="password" class="form-control" id="password" placeholder="Create a password" required>
+                        {{ form.confirm_password.label(class="form-label") }}
+                        {{ form.confirm_password(class="form-control") }}
                     </div>
-                    <div class="mb-3">
-                        <label for="confirm_password" class="form-label">Confirm Password</label>
-                        <input type="password" class="form-control" id="confirm_password" placeholder="Re-enter your password" required>
+                    <div class="mb-3 text-center">
+                        <span class="form-label">User Type:</span>
+                        <a href="?user_type=customer" class="btn btn-outline-secondary btn-sm mx-1 {% if user_type == 'customer' %}active{% endif %}">Customer</a>
+                        <a href="?user_type=insurer" class="btn btn-outline-secondary btn-sm mx-1 {% if user_type == 'insurer' %}active{% endif %}">Insurer</a>
+                        <a href="?user_type=regulator" class="btn btn-outline-secondary btn-sm mx-1 {% if user_type == 'regulator' %}active{% endif %}">Regulator</a>
                     </div>
-                    <div class="mb-3">
-                        <label for="user_type" class="form-label">User Type</label>
-                        <select class="form-select" id="user_type" required onchange="toggleStaffIdField()">
-                            <option value="" disabled selected>Select user type</option>
-                            <option value="customer">Customer</option>
-                            <option value="insurer">Insurer</option>
-                            <option value="regulator">Regulator</option>
-                        </select>
-                    </div>
-                    <div class="mb-3" id="staffIdContainer" style="display:none;">
-                        <label for="staff_id" class="form-label">Staff ID (10 digits)</label>
-                        <input type="text" class="form-control" id="staff_id" pattern="\d{10}" maxlength="10" placeholder="Enter your 10-digit staff ID">
-                        <div class="form-text">Required for Insurer and Regulator accounts.</div>
+                    <div class="mb-3" id="staffIdContainer" style="display: {% if user_type == 'insurer' or user_type == 'regulator' %}block{% else %}none{% endif %};">
+                        <label for="staff_id" class="form-label">Staff ID</label>
+                        <input type="text" name="staff_id" id="staff_id" class="form-control" value="{{ form.staff_id.data if form.staff_id else '' }}" {% if user_type == 'insurer' or user_type == 'regulator' %}required{% endif %}>
                     </div>
                     <button type="submit" class="btn btn-primary w-100">Sign Up</button>
                 </form>
@@ -55,8 +48,7 @@
                 }
                 </script>
                 <div class="mt-3 text-center">
-                    <span class="text-muted">Already have an account?</span>
-                    <a href="/auth/login" class="text-primary fw-bold">Log in</a>
+                    <a href="/auth/login" class="text-primary fw-bold">Already have an account? Log In</a>
                 </div>
             </div>
         </div>
