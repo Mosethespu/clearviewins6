@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container d-flex flex-column justify-content-center align-items-center" style="min-height: calc(100vh - 120px);">
+    <div class="row w-100 justify-content-center align-items-center flex-grow-1">
+        <div class="col-md-5 col-lg-4">
+            <div class="card shadow-lg p-4">
+                <h2 class="mb-4 text-center text-primary">Sign Up</h2>
+                <form>
+                    <div class="mb-3">
+                        <label for="first_name" class="form-label">First Name</label>
+                        <input type="text" class="form-control" id="first_name" placeholder="Enter your first name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="second_name" class="form-label">Second Name</label>
+                        <input type="text" class="form-control" id="second_name" placeholder="Enter your second name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email address</label>
+                        <input type="email" class="form-control" id="email" placeholder="Enter your email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" placeholder="Create a password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirm_password" class="form-label">Confirm Password</label>
+                        <input type="password" class="form-control" id="confirm_password" placeholder="Re-enter your password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="user_type" class="form-label">User Type</label>
+                        <select class="form-select" id="user_type" required onchange="toggleStaffIdField()">
+                            <option value="" disabled selected>Select user type</option>
+                            <option value="customer">Customer</option>
+                            <option value="insurer">Insurer</option>
+                            <option value="regulator">Regulator</option>
+                        </select>
+                    </div>
+                    <div class="mb-3" id="staffIdContainer" style="display:none;">
+                        <label for="staff_id" class="form-label">Staff ID (10 digits)</label>
+                        <input type="text" class="form-control" id="staff_id" pattern="\d{10}" maxlength="10" placeholder="Enter your 10-digit staff ID">
+                        <div class="form-text">Required for Insurer and Regulator accounts.</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Sign Up</button>
+                </form>
+                <script>
+                function toggleStaffIdField() {
+                    var userType = document.getElementById('user_type').value;
+                    var staffIdContainer = document.getElementById('staffIdContainer');
+                    if (userType === 'insurer' || userType === 'regulator') {
+                        staffIdContainer.style.display = 'block';
+                    } else {
+                        staffIdContainer.style.display = 'none';
+                        document.getElementById('staff_id').value = '';
+                    }
+                }
+                </script>
+                <div class="mt-3 text-center">
+                    <span class="text-muted">Already have an account?</span>
+                    <a href="/auth/login" class="text-primary fw-bold">Log in</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

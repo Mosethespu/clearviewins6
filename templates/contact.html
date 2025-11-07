@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container-fluid landing-bg py-5 d-flex flex-column justify-content-center align-items-center" style="min-height: calc(100vh - 120px);">
+    <div class="row w-100 justify-content-center align-items-center flex-grow-1">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow-lg p-4">
+                <h1 class="mb-3 text-center text-primary">Contact Us</h1>
+                <h4 class="fw-semibold text-secondary mb-4 text-center">We'd love to hear from you!</h4>
+                <form>
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Your Name</label>
+                        <input type="text" class="form-control" id="name" placeholder="Enter your name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email address</label>
+                        <input type="email" class="form-control" id="email" placeholder="Enter your email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="message" class="form-label">Message</label>
+                        <textarea class="form-control" id="message" rows="4" placeholder="Type your message here..." required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Send Message</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

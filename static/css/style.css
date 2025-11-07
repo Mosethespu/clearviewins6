@@ -1,0 +1,20 @@
+.landing-bg {
+	background: url('/static/img/insurance-bg.jpg') no-repeat center center;
+	background-size: cover;
+	min-height: calc(100vh - 120px);
+	position: relative;
+}
+.footer {
+	font-weight: bold;
+	letter-spacing: 1px;
+}
+.navbar-brand {
+	font-size: 1.5rem;
+	font-weight: bold;
+}
+.sticky-bottom {
+	position: sticky;
+	bottom: 0;
+	width: 100%;
+	z-index: 1030;
+}

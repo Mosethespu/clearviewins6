@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container py-5" style="min-height: calc(100vh - 120px);">
+    <h1 class="display-4 fw-bold text-primary mb-4 text-center">System Features</h1>
+    <div class="row g-4 justify-content-center">
+        <!-- Insurer Dashboard -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title text-primary"><span style="font-size:1.5rem;">🛡️</span> Insurer Dashboard</h5>
+                    <h6 class="card-subtitle mb-2 text-muted">Smart Risk Profiling & Industry Insights</h6>
+                    <ul class="list-unstyled mt-3 mb-0">
+                        <li>• Input and manage policyholder and vehicle data</li>
+                        <li>• Dynamic risk assessment based on claims and history</li>
+                        <li>• Access shared industry-wide database for fraud detection</li>
+                        <li>• Enhance pricing models with real-time risk profiles</li>
+                        <li>• Adjust premiums dynamically based on updated risk metrics</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <!-- Policyholder Portal -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title text-success"><span style="font-size:1.5rem;">👤</span> Policyholder Portal</h5>
+                    <h6 class="card-subtitle mb-2 text-muted">Personal Risk Score & Claim Transparency</h6>
+                    <ul class="list-unstyled mt-3 mb-0">
+                        <li>• View current insurance policy and weighted risk score</li>
+                        <li>• Access full claim history across all policies</li>
+                        <li>• Get personalized recommendations to improve risk score</li>
+                        <li>• Check vehicle accident history before purchase</li>
+                        <li>• View driving license and claim status of other drivers</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <!-- Public Access Features -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title text-info"><span style="font-size:1.5rem;">🌍</span> Public Access Features</h5>
+                    <h6 class="card-subtitle mb-2 text-muted">Vehicle & Driver Transparency for All Users</h6>
+                    <ul class="list-unstyled mt-3 mb-0">
+                        <li>• Search registered vehicles and their claim history</li>
+                        <li>• Verify accident involvement before buying a vehicle</li>
+                        <li>• View licensed drivers and their insurance status</li>
+                        <li>• Promote safer roads through public accountability</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <!-- Regulator Interface -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title text-warning"><span style="font-size:1.5rem;">🏛️</span> Regulator Interface (IRA)</h5>
+                    <h6 class="card-subtitle mb-2 text-muted">Industry-Wide Analytics & Decision Support</h6>
+                    <ul class="list-unstyled mt-3 mb-0">
+                        <li>• Access aggregated data from 50+ insurers</li>
+                        <li>• Filter data by time period, insurer, or vehicle type</li>
+                        <li>• Export datasets for reporting and analysis</li>
+                        <li>• AI-powered trend detection and risk forecasting</li>
+                        <li>• Support policy decisions with real-time market insights</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
