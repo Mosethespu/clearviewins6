@@ -38,6 +38,14 @@ podman-compose up --build
 ### Access the app
 - Open your browser at [http://localhost:5000](http://localhost:5000)
 
+### Default Admin Credentials
+The application creates a default admin account on first launch:
+- **Email:** `admin@clearinsure.com`
+- **Password:** `Admin@123`
+- **Staff ID:** `ADMIN001`
+
+Use these credentials to access the admin dashboard.
+
 ## 5. Useful Podman Commands
 ```bash
 podman ps                      # List running containers

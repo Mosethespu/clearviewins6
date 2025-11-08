@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container-fluid py-4">
+	<div class="row">
+		<!-- Sidebar -->
+		<aside class="col-12 col-md-3 col-lg-2 mb-4 mb-md-0">
+			<div class="dashboard-sidebar p-3 bg-light rounded shadow-sm">
+				<h6 class="text-uppercase text-muted mb-3">Insurer Options</h6>
+				<div class="d-grid gap-2">
+					<a class="btn btn-outline-info sidebar-btn" href="#">Risk Profiling</a>
+					<a class="btn btn-outline-info sidebar-btn" href="#">Manage Policies</a>
+					<a class="btn btn-outline-info sidebar-btn" href="#">Claims Processing</a>
+					<a class="btn btn-outline-info sidebar-btn" href="#">Customer Analytics</a>
+					<a class="btn btn-outline-info sidebar-btn" href="#">Fraud Detection</a>
+					<a class="btn btn-outline-info sidebar-btn" href="#">Premium Calculator</a>
+					<a class="btn btn-outline-info sidebar-btn" href="#">Reports & Insights</a>
+				</div>
+			</div>
+		</aside>
+
+		<!-- Main content -->
+		<main class="col-12 col-md-9 col-lg-10">
+			<div class="px-2 px-md-3">
+				<h3 class="fw-bold mb-2">Welcome, Insurer!</h3>
+				<h5 class="text-muted mb-3">Insurance Operations Dashboard</h5>
+
+				<!-- Summary tables -->
+				<div class="row g-3">
+					<!-- Active Policies Table -->
+					<div class="col-12 col-lg-6">
+						<div class="card shadow-sm h-100">
+							<div class="card-header bg-info text-white">
+								<h6 class="mb-0">Recent Policies</h6>
+							</div>
+							<div class="card-body p-0">
+								<div class="table-responsive">
+									<table class="table table-sm table-hover mb-0 align-middle">
+										<thead class="table-light">
+											<tr>
+												<th>Policy Number</th>
+												<th>Customer</th>
+												<th>Type</th>
+												<th>Status</th>
+											</tr>
+										</thead>
+										<tbody>
+											<tr>
+												<td>CO-0001</td>
+												<td>John Doe</td>
+												<td>Comprehensive</td>
+												<td><span class="badge bg-success">Active</span></td>
+											</tr>
+											<tr>
+												<td>TO-0032</td>
+												<td>Jane Smith</td>
+												<td>Third Party</td>
+												<td><span class="badge bg-success">Active</span></td>
+											</tr>
+											<tr>
+												<td>CO-0043</td>
+												<td>Bob Johnson</td>
+												<td>Comprehensive</td>
+												<td><span class="badge bg-warning">Pending</span></td>
+											</tr>
+											<tr>
+												<td>TO-0055</td>
+												<td>Alice Brown</td>
+												<td>Third Party</td>
+												<td><span class="badge bg-success">Active</span></td>
+											</tr>
+										</tbody>
+									</table>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<!-- Pending Claims Table -->
+					<div class="col-12 col-lg-6">
+						<div class="card shadow-sm h-100">
+							<div class="card-header bg-warning text-dark">
+								<h6 class="mb-0">Pending Claims</h6>
+							</div>
+							<div class="card-body p-0">
+								<div class="table-responsive">
+									<table class="table table-sm table-hover mb-0 align-middle">
+										<thead class="table-light">
+											<tr>
+												<th>Claim ID</th>
+												<th>Customer</th>
+												<th>Amount</th>
+												<th>Status</th>
+											</tr>
+										</thead>
+										<tbody>
+											<tr>
+												<td>CLM-001</td>
+												<td>John Doe</td>
+												<td>KES 50,000</td>
+												<td><span class="badge bg-warning">Review</span></td>
+											</tr>
+											<tr>
+												<td>CLM-002</td>
+												<td>Jane Smith</td>
+												<td>KES 25,000</td>
+												<td><span class="badge bg-info">Processing</span></td>
+											</tr>
+											<tr>
+												<td>CLM-003</td>
+												<td>Bob Johnson</td>
+												<td>KES 75,000</td>
+												<td><span class="badge bg-warning">Review</span></td>
+											</tr>
+											<tr>
+												<td>CLM-004</td>
+												<td>Alice Brown</td>
+												<td>KES 30,000</td>
+												<td><span class="badge bg-info">Processing</span></td>
+											</tr>
+										</tbody>
+									</table>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Metrics row -->
+				<div class="row g-3 mt-3">
+					<div class="col-6 col-md-3">
+						<div class="metric-card text-center shadow-sm p-3 bg-white rounded h-100">
+							<p class="text-muted mb-1 small">Active Policies</p>
+							<p class="metric-value text-info mb-0">156</p>
+						</div>
+					</div>
+					<div class="col-6 col-md-3">
+						<div class="metric-card text-center shadow-sm p-3 bg-white rounded h-100">
+							<p class="text-muted mb-1 small">Pending Claims</p>
+							<p class="metric-value text-warning mb-0">12</p>
+						</div>
+					</div>
+					<div class="col-6 col-md-3">
+						<div class="metric-card text-center shadow-sm p-3 bg-white rounded h-100">
+							<p class="text-muted mb-1 small">Total Customers</p>
+							<p class="metric-value text-success mb-0">243</p>
+						</div>
+					</div>
+					<div class="col-6 col-md-3">
+						<div class="metric-card text-center shadow-sm p-3 bg-white rounded h-100">
+							<p class="text-muted mb-1 small">Monthly Revenue</p>
+							<p class="metric-value text-primary mb-0">KES 2.5M</p>
+						</div>
+					</div>
+				</div>
+			</div>
+		</main>
+	</div>
+</div>
+{% endblock %}

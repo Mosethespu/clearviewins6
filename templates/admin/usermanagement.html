@@ -1,0 +1,223 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container-fluid py-4">
+	<div class="d-flex justify-content-between align-items-center mb-4">
+		<h3 class="fw-bold mb-0">User Management</h3>
+		<a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary">
+			<i class="bi bi-arrow-left"></i> Back to Dashboard
+		</a>
+	</div>
+
+	<!-- Flash messages -->
+	{% with messages = get_flashed_messages(with_categories=true) %}
+		{% if messages %}
+			{% for category, message in messages %}
+				<div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+					{{ message }}
+					<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+				</div>
+			{% endfor %}
+		{% endif %}
+	{% endwith %}
+
+	<!-- Tabs for different user types -->
+	<ul class="nav nav-tabs mb-4" id="userTabs" role="tablist">
+		<li class="nav-item" role="presentation">
+			<button class="nav-link active" id="customers-tab" data-bs-toggle="tab" data-bs-target="#customers" type="button" role="tab">
+				Customers ({{ customers|length }})
+			</button>
+		</li>
+		<li class="nav-item" role="presentation">
+			<button class="nav-link" id="insurers-tab" data-bs-toggle="tab" data-bs-target="#insurers" type="button" role="tab">
+				Insurers ({{ insurers|length }})
+			</button>
+		</li>
+		<li class="nav-item" role="presentation">
+			<button class="nav-link" id="regulators-tab" data-bs-toggle="tab" data-bs-target="#regulators" type="button" role="tab">
+				Regulators ({{ regulators|length }})
+			</button>
+		</li>
+	</ul>
+
+	<!-- Tab content -->
+	<div class="tab-content" id="userTabsContent">
+		<!-- Customers Tab -->
+		<div class="tab-pane fade show active" id="customers" role="tabpanel">
+			<div class="card shadow-sm">
+				<div class="card-header bg-primary text-white">
+					<h5 class="mb-0">Customer Accounts</h5>
+				</div>
+				<div class="card-body p-0">
+					<div class="table-responsive">
+						<table class="table table-hover mb-0 align-middle">
+							<thead class="table-light">
+								<tr>
+									<th>ID</th>
+									<th>Username</th>
+									<th>Email</th>
+									<th>Status</th>
+									<th>Actions</th>
+								</tr>
+							</thead>
+							<tbody>
+								{% for customer in customers %}
+								<tr>
+									<td>{{ customer.id }}</td>
+									<td>{{ customer.username }}</td>
+									<td>{{ customer.email }}</td>
+									<td>
+										{% if customer.is_active %}
+										<span class="badge bg-success">Active</span>
+										{% else %}
+										<span class="badge bg-danger">Disabled</span>
+										{% endif %}
+									</td>
+									<td>
+										<div class="btn-group btn-group-sm" role="group">
+											<a href="{{ url_for('edit_user', user_type='customer', user_id=customer.id) }}" class="btn btn-outline-primary">Edit</a>
+											{% if customer.is_active %}
+											<form method="POST" action="{{ url_for('toggle_user_status', user_type='customer', user_id=customer.id) }}" style="display:inline;">
+												<button type="submit" class="btn btn-outline-warning">Disable</button>
+											</form>
+											{% else %}
+											<form method="POST" action="{{ url_for('toggle_user_status', user_type='customer', user_id=customer.id) }}" style="display:inline;">
+												<button type="submit" class="btn btn-outline-success">Enable</button>
+											</form>
+											{% endif %}
+										</div>
+									</td>
+								</tr>
+								{% else %}
+								<tr>
+									<td colspan="5" class="text-center text-muted py-4">No customers found</td>
+								</tr>
+								{% endfor %}
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Insurers Tab -->
+		<div class="tab-pane fade" id="insurers" role="tabpanel">
+			<div class="card shadow-sm">
+				<div class="card-header bg-info text-white">
+					<h5 class="mb-0">Insurer Accounts</h5>
+				</div>
+				<div class="card-body p-0">
+					<div class="table-responsive">
+						<table class="table table-hover mb-0 align-middle">
+							<thead class="table-light">
+								<tr>
+									<th>ID</th>
+									<th>Username</th>
+									<th>Email</th>
+									<th>Staff ID</th>
+									<th>Status</th>
+									<th>Actions</th>
+								</tr>
+							</thead>
+							<tbody>
+								{% for insurer in insurers %}
+								<tr>
+									<td>{{ insurer.id }}</td>
+									<td>{{ insurer.username }}</td>
+									<td>{{ insurer.email }}</td>
+									<td>{{ insurer.staff_id }}</td>
+									<td>
+										{% if insurer.is_active %}
+										<span class="badge bg-success">Active</span>
+										{% else %}
+										<span class="badge bg-danger">Disabled</span>
+										{% endif %}
+									</td>
+									<td>
+										<div class="btn-group btn-group-sm" role="group">
+											<a href="{{ url_for('edit_user', user_type='insurer', user_id=insurer.id) }}" class="btn btn-outline-primary">Edit</a>
+											{% if insurer.is_active %}
+											<form method="POST" action="{{ url_for('toggle_user_status', user_type='insurer', user_id=insurer.id) }}" style="display:inline;">
+												<button type="submit" class="btn btn-outline-warning">Disable</button>
+											</form>
+											{% else %}
+											<form method="POST" action="{{ url_for('toggle_user_status', user_type='insurer', user_id=insurer.id) }}" style="display:inline;">
+												<button type="submit" class="btn btn-outline-success">Enable</button>
+											</form>
+											{% endif %}
+										</div>
+									</td>
+								</tr>
+								{% else %}
+								<tr>
+									<td colspan="6" class="text-center text-muted py-4">No insurers found</td>
+								</tr>
+								{% endfor %}
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Regulators Tab -->
+		<div class="tab-pane fade" id="regulators" role="tabpanel">
+			<div class="card shadow-sm">
+				<div class="card-header bg-warning text-dark">
+					<h5 class="mb-0">Regulator Accounts</h5>
+				</div>
+				<div class="card-body p-0">
+					<div class="table-responsive">
+						<table class="table table-hover mb-0 align-middle">
+							<thead class="table-light">
+								<tr>
+									<th>ID</th>
+									<th>Username</th>
+									<th>Email</th>
+									<th>Staff ID</th>
+									<th>Status</th>
+									<th>Actions</th>
+								</tr>
+							</thead>
+							<tbody>
+								{% for regulator in regulators %}
+								<tr>
+									<td>{{ regulator.id }}</td>
+									<td>{{ regulator.username }}</td>
+									<td>{{ regulator.email }}</td>
+									<td>{{ regulator.staff_id }}</td>
+									<td>
+										{% if regulator.is_active %}
+										<span class="badge bg-success">Active</span>
+										{% else %}
+										<span class="badge bg-danger">Disabled</span>
+										{% endif %}
+									</td>
+									<td>
+										<div class="btn-group btn-group-sm" role="group">
+											<a href="{{ url_for('edit_user', user_type='regulator', user_id=regulator.id) }}" class="btn btn-outline-primary">Edit</a>
+											{% if regulator.is_active %}
+											<form method="POST" action="{{ url_for('toggle_user_status', user_type='regulator', user_id=regulator.id) }}" style="display:inline;">
+												<button type="submit" class="btn btn-outline-warning">Disable</button>
+											</form>
+											{% else %}
+											<form method="POST" action="{{ url_for('toggle_user_status', user_type='regulator', user_id=regulator.id) }}" style="display:inline;">
+												<button type="submit" class="btn btn-outline-success">Enable</button>
+											</form>
+											{% endif %}
+										</div>
+									</td>
+								</tr>
+								{% else %}
+								<tr>
+									<td colspan="6" class="text-center text-muted py-4">No regulators found</td>
+								</tr>
+								{% endfor %}
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %}

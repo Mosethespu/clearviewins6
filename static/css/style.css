@@ -18,3 +18,31 @@
 	width: 100%;
 	z-index: 1030;
 }
+
+/* Dashboard specific */
+.dashboard-sidebar .sidebar-btn {
+	text-align: left;
+	font-weight: 500;
+}
+.dashboard-sidebar .sidebar-btn:hover {
+	background-color: var(--bs-primary);
+	color: #fff;
+}
+.metric-card {
+	background: #f2f4fa;
+	border: 1px solid #d9dde5;
+}
+.metric-value {
+	font-size: 2.2rem;
+	font-weight: 700;
+	line-height: 1;
+}
+.table thead th {
+	font-size: 0.8rem;
+	text-transform: uppercase;
+	letter-spacing: .5px;
+}
+@media (max-width: 767.98px) {
+	.metric-value { font-size: 1.8rem; }
+	.dashboard-sidebar { position: static; }
+}

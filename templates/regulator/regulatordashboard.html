@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container-fluid py-4">
+	<div class="row">
+		<!-- Sidebar -->
+		<aside class="col-12 col-md-3 col-lg-2 mb-4 mb-md-0">
+			<div class="dashboard-sidebar p-3 bg-light rounded shadow-sm">
+				<h6 class="text-uppercase text-muted mb-3">Regulator Options</h6>
+				<div class="d-grid gap-2">
+					<a class="btn btn-outline-warning sidebar-btn" href="#">Industry Overview</a>
+					<a class="btn btn-outline-warning sidebar-btn" href="#">Compliance Monitoring</a>
+					<a class="btn btn-outline-warning sidebar-btn" href="#">Audit Reports</a>
+					<a class="btn btn-outline-warning sidebar-btn" href="#">Risk Assessment</a>
+					<a class="btn btn-outline-warning sidebar-btn" href="#">Market Analysis</a>
+					<a class="btn btn-outline-warning sidebar-btn" href="#">Violations & Penalties</a>
+					<a class="btn btn-outline-warning sidebar-btn" href="#">Regulatory Guidelines</a>
+				</div>
+			</div>
+		</aside>
+
+		<!-- Main content -->
+		<main class="col-12 col-md-9 col-lg-10">
+			<div class="px-2 px-md-3">
+				<h3 class="fw-bold mb-2">Welcome, Regulator!</h3>
+				<h5 class="text-muted mb-3">Insurance Industry Oversight Dashboard</h5>
+
+				<!-- Summary tables -->
+				<div class="row g-3">
+					<!-- Insurers Overview Table -->
+					<div class="col-12 col-lg-6">
+						<div class="card shadow-sm h-100">
+							<div class="card-header bg-warning text-dark">
+								<h6 class="mb-0">Registered Insurers</h6>
+							</div>
+							<div class="card-body p-0">
+								<div class="table-responsive">
+									<table class="table table-sm table-hover mb-0 align-middle">
+										<thead class="table-light">
+											<tr>
+												<th>Insurer Name</th>
+												<th>License No.</th>
+												<th>Compliance</th>
+												<th>Status</th>
+											</tr>
+										</thead>
+										<tbody>
+											<tr>
+												<td>ABC Insurance</td>
+												<td>INS-001</td>
+												<td>98%</td>
+												<td><span class="badge bg-success">Active</span></td>
+											</tr>
+											<tr>
+												<td>XYZ Covers Ltd</td>
+												<td>INS-002</td>
+												<td>95%</td>
+												<td><span class="badge bg-success">Active</span></td>
+											</tr>
+											<tr>
+												<td>SecureLife Inc</td>
+												<td>INS-003</td>
+												<td>88%</td>
+												<td><span class="badge bg-warning">Review</span></td>
+											</tr>
+											<tr>
+												<td>SafeDrive Insurance</td>
+												<td>INS-004</td>
+												<td>92%</td>
+												<td><span class="badge bg-success">Active</span></td>
+											</tr>
+										</tbody>
+									</table>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<!-- Recent Violations Table -->
+					<div class="col-12 col-lg-6">
+						<div class="card shadow-sm h-100">
+							<div class="card-header bg-danger text-white">
+								<h6 class="mb-0">Recent Violations</h6>
+							</div>
+							<div class="card-body p-0">
+								<div class="table-responsive">
+									<table class="table table-sm table-hover mb-0 align-middle">
+										<thead class="table-light">
+											<tr>
+												<th>Violation ID</th>
+												<th>Insurer</th>
+												<th>Type</th>
+												<th>Severity</th>
+											</tr>
+										</thead>
+										<tbody>
+											<tr>
+												<td>VIO-001</td>
+												<td>SecureLife Inc</td>
+												<td>Late Reporting</td>
+												<td><span class="badge bg-warning">Medium</span></td>
+											</tr>
+											<tr>
+												<td>VIO-002</td>
+												<td>ABC Insurance</td>
+												<td>Documentation</td>
+												<td><span class="badge bg-info">Low</span></td>
+											</tr>
+											<tr>
+												<td>VIO-003</td>
+												<td>XYZ Covers Ltd</td>
+												<td>Claim Processing</td>
+												<td><span class="badge bg-danger">High</span></td>
+											</tr>
+											<tr>
+												<td>VIO-004</td>
+												<td>SafeDrive Insurance</td>
+												<td>Premium Rates</td>
+												<td><span class="badge bg-warning">Medium</span></td>
+											</tr>
+										</tbody>
+									</table>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Metrics row -->
+				<div class="row g-3 mt-3">
+					<div class="col-6 col-md-3">
+						<div class="metric-card text-center shadow-sm p-3 bg-white rounded h-100">
+							<p class="text-muted mb-1 small">Registered Insurers</p>
+							<p class="metric-value text-warning mb-0">47</p>
+						</div>
+					</div>
+					<div class="col-6 col-md-3">
+						<div class="metric-card text-center shadow-sm p-3 bg-white rounded h-100">
+							<p class="text-muted mb-1 small">Active Violations</p>
+							<p class="metric-value text-danger mb-0">8</p>
+						</div>
+					</div>
+					<div class="col-6 col-md-3">
+						<div class="metric-card text-center shadow-sm p-3 bg-white rounded h-100">
+							<p class="text-muted mb-1 small">Compliance Rate</p>
+							<p class="metric-value text-success mb-0">94%</p>
+						</div>
+					</div>
+					<div class="col-6 col-md-3">
+						<div class="metric-card text-center shadow-sm p-3 bg-white rounded h-100">
+							<p class="text-muted mb-1 small">Audits This Month</p>
+							<p class="metric-value text-info mb-0">12</p>
+						</div>
+					</div>
+				</div>
+			</div>
+		</main>
+	</div>
+</div>
+{% endblock %}

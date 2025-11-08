@@ -15,25 +15,32 @@
 				<span class="navbar-toggler-icon"></span>
 			</button>
 			<div class="collapse navbar-collapse" id="navbarNav">
-				<ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-					<li class="nav-item"><a class="nav-link" href="/features">Features</a></li>
-					<li class="nav-item"><a class="nav-link" href="/blog">Blog</a></li>
-					<li class="nav-item"><a class="nav-link" href="/contact">Contact Us</a></li>
+			<ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-lg-center">
+				<li class="nav-item"><a class="nav-link" href="/features">Features</a></li>
+				<li class="nav-item"><a class="nav-link" href="/blog">Blog</a></li>
+				<li class="nav-item"><a class="nav-link" href="/contact">Contact Us</a></li>
+				{% if current_user is defined and current_user.is_authenticated %}
+					<li class="nav-item"><a class="nav-link" href="{{ url_for('dashboard') }}">Welcome, {{ current_user.username }}</a></li>
+					<li class="nav-item"><a class="nav-link text-warning" href="/logout">Log Out</a></li>
+				{% else %}
 					<li class="nav-item"><a class="nav-link" href="/auth/login">Log In</a></li>
 					<li class="nav-item"><a class="nav-link" href="/auth/signup">Sign Up</a></li>
-				</ul>
-				<span class="navbar-text ms-3">
-					{% if current_user is defined and current_user.is_authenticated %}
-						Welcome, {{ current_user.username }}
-					{% else %}
-						<span class="text-light">Not logged in</span>
-					{% endif %}
-				</span>
+				{% endif %}
+			</ul>
 			</div>
 		</div>
 	</nav>
 
-	{% block content %}{% endblock %}
+		{% with messages = get_flashed_messages(with_categories=true) %}
+			{% if messages %}
+				<div class="container mt-3">
+					{% for category, message in messages %}
+						<div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+					{% endfor %}
+				</div>
+			{% endif %}
+		{% endwith %}
+		{% block content %}{% endblock %}
 
 	<footer class="footer mt-auto py-3 bg-primary text-white text-center sticky-bottom">
 		<div class="container">

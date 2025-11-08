@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container py-4">
+	<div class="row justify-content-center">
+		<div class="col-md-6">
+			<div class="card shadow">
+				<div class="card-header bg-primary text-white">
+					<h5 class="mb-0">Edit {{ user_type.capitalize() }} Account</h5>
+				</div>
+				<div class="card-body">
+					<!-- Flash messages -->
+					{% with messages = get_flashed_messages(with_categories=true) %}
+						{% if messages %}
+							{% for category, message in messages %}
+								<div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+									{{ message }}
+									<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+								</div>
+							{% endfor %}
+						{% endif %}
+					{% endwith %}
+
+					<form method="POST">
+						<div class="mb-3">
+							<label for="username" class="form-label">Username</label>
+							<input type="text" class="form-control" id="username" name="username" value="{{ user.username }}" required>
+						</div>
+						<div class="mb-3">
+							<label for="email" class="form-label">Email</label>
+							<input type="email" class="form-control" id="email" name="email" value="{{ user.email }}" required>
+						</div>
+						{% if user_type in ['insurer', 'regulator'] %}
+						<div class="mb-3">
+							<label for="staff_id" class="form-label">Staff ID</label>
+							<input type="text" class="form-control" id="staff_id" name="staff_id" value="{{ user.staff_id or '' }}">
+						</div>
+						{% endif %}
+						<div class="mb-3">
+							<label for="password" class="form-label">New Password (leave blank to keep current)</label>
+							<input type="password" class="form-control" id="password" name="password" placeholder="Enter new password">
+							<small class="text-muted">Only fill this if you want to change the password</small>
+						</div>
+						<div class="d-grid gap-2">
+							<button type="submit" class="btn btn-primary">Update User</button>
+							<a href="{{ url_for('user_management') }}" class="btn btn-outline-secondary">Cancel</a>
+						</div>
+					</form>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %}
