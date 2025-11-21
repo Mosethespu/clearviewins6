@@ -2,11 +2,12 @@
 from flask import Flask, render_template, redirect, url_for, flash, request
 from config import Config
 from extension import db, login_manager, migrate, cache
-from models import Admin, Customer, Insurer, Regulator
-from forms import SignupForm, LoginForm
+from models import Admin, Customer, Insurer, Regulator, InsuranceCompany, InsurerRequest
+from forms import SignupForm, LoginForm, InsurerAccessRequestForm
 from flask_login import login_user, logout_user, current_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
 from decorators import admin_required, customer_required, insurer_required, regulator_required
+from datetime import datetime
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -15,10 +16,48 @@ login_manager.init_app(app)
 migrate.init_app(app, db)
 cache.init_app(app)
 
+# Insurance companies data
+INSURANCE_COMPANIES = [
+	"AAR Insurance Kenya Ltd",
+	"Africa Merchant Assurance Co. Ltd",
+	"APA Insurance Ltd",
+	"Britam General Insurance Co. Ltd",
+	"Cannon General Insurance Ltd",
+	"CIC General Insurance Ltd",
+	"Corporate Insurance Co. Ltd",
+	"DirectLine Assurance Co. Ltd",
+	"Fidelity Shield Insurance Co. Ltd",
+	"First Assurance Co. Ltd",
+	"GA Insurance Ltd",
+	"Geminia Insurance Co. Ltd",
+	"Heritage Insurance Co. Ltd",
+	"Intra Africa Assurance Co. Ltd",
+	"Jubilee General Insurance Ltd",
+	"Kenindia Assurance Co. Ltd",
+	"Kenya Orient Insurance Ltd",
+	"Madison General Insurance Kenya Ltd",
+	"Mayfair Insurance Co. Ltd",
+	"Occidental Insurance Co. Ltd",
+	"Pacis Insurance Co. Ltd",
+	"Resolution Insurance Ltd",
+	"Sanlam General Insurance Ltd",
+	"Takaful Insurance of Africa Ltd",
+	"Tausi Assurance Co. Ltd",
+	"Trident Insurance Co. Ltd",
+	"UAP Old Mutual General Insurance Ltd",
+	"Xplico Insurance Co. Ltd",
+	"Monarch Insurance Co. Ltd",
+	"Saham Assurance Co. Ltd",
+	"Continental Insurance Co. Ltd",
+	"Pioneer General Insurance Ltd",
+	"Prudential Assurance Kenya Ltd",
+	"Amaco Insurance Ltd"
+]
+
 with app.app_context():
-	# Ensure tables exist if migrations not yet applied (safe create)
 	try:
 		db.create_all()
+		
 		# Create default admin if not exists
 		admin_exists = Admin.query.filter_by(email='admin@clearinsure.com').first()
 		if not admin_exists:
@@ -37,6 +76,15 @@ with app.app_context():
 			print("Password: Admin@123")
 			print("Staff ID: ADMIN001")
 			print("="*60 + "\n")
+		
+		# Populate insurance companies if not exists
+		if InsuranceCompany.query.count() == 0:
+			for company_name in INSURANCE_COMPANIES:
+				company = InsuranceCompany(name=company_name)
+				db.session.add(company)
+			db.session.commit()
+			print(f"Added {len(INSURANCE_COMPANIES)} insurance companies to database")
+			
 	except Exception as e:
 		app.logger.warning(f"Database initialization warning: {e}")
 
@@ -84,36 +132,43 @@ def signup():
 		email = form.email.data
 		password = form.password.data
 		user_type = form.user_type.data
-		# Only allow signup for customer, insurer, regulator (no admin self-signup)
+		
 		allowed_types = {'customer', 'insurer', 'regulator'}
 		if user_type not in allowed_types:
 			flash('Invalid user type.', 'danger')
 			return render_template('signup.html', form=form)
+		
 		staff_id = form.staff_id.data if user_type in ['insurer', 'regulator'] else None
 		hashed_password = generate_password_hash(password)
+		
 		# Check if user exists in any table
 		exists = False
 		for model in [Admin, Customer, Insurer, Regulator]:
 			if model.query.filter((model.username==username)|(model.email==email)).first():
 				exists = True
 				break
+		
 		if exists:
 			flash('Username or email already exists.', 'danger')
 			return render_template('signup.html', form=form)
+		
 		# Create user in correct table
 		if user_type == 'customer':
 			user = Customer(username=username, email=email, password=hashed_password)
 		elif user_type == 'insurer':
-			user = Insurer(username=username, email=email, password=hashed_password, staff_id=staff_id)
+			# Insurers need to be approved, so is_approved=False by default
+			user = Insurer(username=username, email=email, password=hashed_password, staff_id=None, is_approved=False)
 		elif user_type == 'regulator':
 			user = Regulator(username=username, email=email, password=hashed_password, staff_id=staff_id)
 		else:
 			flash('Invalid user type.', 'danger')
 			return render_template('signup.html', form=form)
+		
 		db.session.add(user)
 		db.session.commit()
 		flash('Sign up successful! Please log in.', 'success')
 		return redirect(url_for('login'))
+	
 	return render_template('signup.html', form=form)
 
 @app.route('/auth/login', methods=['GET', 'POST'])
@@ -178,7 +233,76 @@ def admin_dashboard():
 	customers = Customer.query.all()
 	insurers = Insurer.query.all()
 	regulators = Regulator.query.all()
-	return render_template('admin/admindashboard.html', customers=customers, insurers=insurers, regulators=regulators)
+	pending_count = InsurerRequest.query.filter_by(status='pending').count()
+	
+	return render_template('admin/admindashboard.html', 
+						   customers=customers, 
+						   insurers=insurers, 
+						   regulators=regulators,
+						   pending_count=pending_count)
+
+@app.route('/admin/insurer-requests')
+@login_required
+@admin_required
+def review_insurer_requests():
+	pending_requests = InsurerRequest.query.filter_by(status='pending').order_by(InsurerRequest.request_date.desc()).all()
+	approved_requests = InsurerRequest.query.filter_by(status='approved').order_by(InsurerRequest.reviewed_date.desc()).all()
+	rejected_requests = InsurerRequest.query.filter_by(status='rejected').order_by(InsurerRequest.reviewed_date.desc()).all()
+	
+	return render_template('admin/review_requests.html',
+						   pending_requests=pending_requests,
+						   approved_requests=approved_requests,
+						   rejected_requests=rejected_requests)
+
+@app.route('/admin/approve-request/<int:request_id>', methods=['POST'])
+@login_required
+@admin_required
+def approve_insurer_request(request_id):
+	access_request = InsurerRequest.query.get_or_404(request_id)
+	
+	if access_request.status != 'pending':
+		flash('This request has already been reviewed.', 'warning')
+		return redirect(url_for('review_insurer_requests'))
+	
+	# Update request status
+	access_request.status = 'approved'
+	access_request.reviewed_date = datetime.utcnow()
+	access_request.reviewed_by = current_user.id
+	
+	# Update insurer record
+	insurer = access_request.insurer
+	insurer.is_approved = True
+	insurer.staff_id = access_request.staff_id
+	insurer.insurance_company_id = access_request.insurance_company_id
+	insurer.approval_date = datetime.utcnow()
+	
+	db.session.commit()
+	
+	flash(f'Access request for {insurer.username} has been approved.', 'success')
+	return redirect(url_for('review_insurer_requests'))
+
+@app.route('/admin/reject-request/<int:request_id>', methods=['POST'])
+@login_required
+@admin_required
+def reject_insurer_request(request_id):
+	access_request = InsurerRequest.query.get_or_404(request_id)
+	
+	if access_request.status != 'pending':
+		flash('This request has already been reviewed.', 'warning')
+		return redirect(url_for('review_insurer_requests'))
+	
+	rejection_reason = request.form.get('rejection_reason', 'No reason provided')
+	
+	# Update request status
+	access_request.status = 'rejected'
+	access_request.reviewed_date = datetime.utcnow()
+	access_request.reviewed_by = current_user.id
+	access_request.rejection_reason = rejection_reason
+	
+	db.session.commit()
+	
+	flash(f'Access request for {access_request.insurer.username} has been rejected.', 'info')
+	return redirect(url_for('review_insurer_requests'))
 
 @app.route('/admin/user-management')
 @login_required
@@ -269,7 +393,65 @@ def customer_dashboard():
 @login_required
 @insurer_required
 def insurer_dashboard():
+	# Check if insurer is approved
+	if not current_user.is_approved:
+		# Check if they have a pending request
+		pending_request = InsurerRequest.query.filter_by(
+			insurer_id=current_user.id,
+			status='pending'
+		).first()
+		
+		if pending_request:
+			return render_template('insurer/pending_approval.html', request=pending_request)
+		else:
+			# No request yet, redirect to request access page
+			return redirect(url_for('request_insurer_access'))
+	
+	# Insurer is approved, show dashboard
 	return render_template('insurer/insurerdashboard.html')
+
+@app.route('/insurer/request-access', methods=['GET', 'POST'])
+@login_required
+@insurer_required
+def request_insurer_access():
+	# Check if already approved
+	if current_user.is_approved:
+		return redirect(url_for('insurer_dashboard'))
+	
+	# Check if there's already a pending request
+	existing_request = InsurerRequest.query.filter_by(
+		insurer_id=current_user.id,
+		status='pending'
+	).first()
+	
+	if existing_request:
+		return render_template('insurer/pending_approval.html', request=existing_request)
+	
+	form = InsurerAccessRequestForm()
+	
+	# Populate insurance company choices
+	companies = InsuranceCompany.query.filter_by(is_active=True).order_by(InsuranceCompany.name).all()
+	form.insurance_company.choices = [(c.id, c.name) for c in companies]
+	
+	if form.validate_on_submit():
+		staff_id = form.staff_id.data
+		insurance_company_id = form.insurance_company.data
+		
+		# Create access request
+		access_request = InsurerRequest(
+			insurer_id=current_user.id,
+			staff_id=staff_id,
+			insurance_company_id=insurance_company_id,
+			status='pending'
+		)
+		
+		db.session.add(access_request)
+		db.session.commit()
+		
+		flash('Your access request has been submitted. Please wait for admin approval.', 'success')
+		return redirect(url_for('insurer_dashboard'))
+	
+	return render_template('insurer/request_access.html', form=form)
 
 @app.route('/regulator/dashboard')
 @login_required

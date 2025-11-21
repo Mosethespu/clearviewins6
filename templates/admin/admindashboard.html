@@ -8,6 +8,12 @@
 				<h6 class="text-uppercase text-muted mb-3">Admin Options</h6>
 				<div class="d-grid gap-2">
 					<a class="btn btn-outline-primary sidebar-btn" href="{{ url_for('user_management') }}">User Management</a>
+					<a class="btn btn-outline-warning sidebar-btn" href="{{ url_for('review_insurer_requests') }}">
+						Insurer Requests
+						{% if pending_count > 0 %}
+							<span class="badge bg-danger">{{ pending_count }}</span>
+						{% endif %}
+					</a>
 					<a class="btn btn-outline-primary sidebar-btn" href="#">View All Policies</a>
 					<a class="btn btn-outline-primary sidebar-btn" href="#">View All Claims</a>
 					<a class="btn btn-outline-primary sidebar-btn" href="#">System Reports</a>
@@ -21,7 +27,7 @@
 		<!-- Main content -->
 		<main class="col-12 col-md-9 col-lg-10">
 			<div class="px-2 px-md-3">
-				<h3 class="fw-bold mb-2">Welcome, Admin!</h3>
+				<h3 class="fw-bold mb-2">Welcome, {{ current_user.username }}!</h3>
 				<h5 class="text-muted mb-3">System Overview</h5>
 
 				<!-- Summary tables -->
@@ -73,16 +79,22 @@
 										<thead class="table-light">
 											<tr>
 												<th>Username</th>
-												<th>Staff ID</th>
+												<th>Company</th>
 												<th>Status</th>
 											</tr>
 										</thead>
 										<tbody>
-											{% for insurer in insurers %}
+											{% for insurer in insurers[:5] %}
 											<tr>
 												<td>{{ insurer.username }}</td>
-												<td>{{ insurer.staff_id }}</td>
-												<td><span class="badge bg-success">Active</span></td>
+												<td>{{ insurer.company.name if insurer.company else 'N/A' }}</td>
+												<td>
+													{% if insurer.is_approved %}
+														<span class="badge bg-success">Approved</span>
+													{% else %}
+														<span class="badge bg-warning">Pending</span>
+													{% endif %}
+												</td>
 											</tr>
 											{% else %}
 											<tr>
@@ -148,8 +160,8 @@
 					</div>
 					<div class="col-6 col-md-3">
 						<div class="metric-card text-center shadow-sm p-3 bg-white rounded h-100">
-							<p class="text-muted mb-1 small">Total Regulators</p>
-							<p class="metric-value text-warning mb-0">{{ regulators|length }}</p>
+							<p class="text-muted mb-1 small">Pending Requests</p>
+							<p class="metric-value text-warning mb-0">{{ pending_count }}</p>
 						</div>
 					</div>
 					<div class="col-6 col-md-3">

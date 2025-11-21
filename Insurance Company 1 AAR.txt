@@ -1,0 +1,36 @@
+
+#	Insurance Company
+1	AAR Insurance Kenya Ltd
+2	Africa Merchant Assurance Co. Ltd
+3	APA Insurance Ltd
+4	Britam General Insurance Co. Ltd
+5	Cannon General Insurance Ltd
+6	CIC General Insurance Ltd
+7	Corporate Insurance Co. Ltd
+8	DirectLine Assurance Co. Ltd
+9	Fidelity Shield Insurance Co. Ltd
+10	First Assurance Co. Ltd
+11	GA Insurance Ltd
+12	Geminia Insurance Co. Ltd
+13	Heritage Insurance Co. Ltd
+14	Intra Africa Assurance Co. Ltd
+15	Jubilee General Insurance Ltd
+16	Kenindia Assurance Co. Ltd
+17	Kenya Orient Insurance Ltd
+18	Madison General Insurance Kenya Ltd
+19	Mayfair Insurance Co. Ltd
+20	Occidental Insurance Co. Ltd
+21	Pacis Insurance Co. Ltd
+22	Resolution Insurance Ltd
+23	Sanlam General Insurance Ltd
+24	Takaful Insurance of Africa Ltd
+25	Tausi Assurance Co. Ltd
+26	Trident Insurance Co. Ltd
+27	UAP Old Mutual General Insurance Ltd
+28	Xplico Insurance Co. Ltd
+29	Monarch Insurance Co. Ltd
+30	Saham Assurance Co. Ltd
+31	Continental Insurance Co. Ltd
+32	Pioneer General Insurance Ltd
+33	Prudential Assurance Kenya Ltd
+34	Amaco Insurance Ltd
