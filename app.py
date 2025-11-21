@@ -241,6 +241,12 @@ def admin_dashboard():
 						   regulators=regulators,
 						   pending_count=pending_count)
 
+@app.route('/admin/search')
+@login_required
+@admin_required
+def admin_search():
+	return render_template('admin/search.html')
+
 @app.route('/admin/insurer-requests')
 @login_required
 @admin_required
@@ -389,6 +395,12 @@ def edit_user(user_type, user_id):
 def customer_dashboard():
 	return render_template('customer/customerashboard.html')
 
+@app.route('/customer/search')
+@login_required
+@customer_required
+def customer_search():
+	return render_template('customer/search.html')
+
 @app.route('/insurer/dashboard')
 @login_required
 @insurer_required
@@ -409,6 +421,12 @@ def insurer_dashboard():
 	
 	# Insurer is approved, show dashboard
 	return render_template('insurer/insurerdashboard.html')
+
+@app.route('/insurer/search')
+@login_required
+@insurer_required
+def insurer_search():
+	return render_template('insurer/search.html')
 
 @app.route('/insurer/request-access', methods=['GET', 'POST'])
 @login_required
@@ -458,6 +476,12 @@ def request_insurer_access():
 @regulator_required
 def regulator_dashboard():
 	return render_template('regulator/regulatordashboard.html')
+
+@app.route('/regulator/search')
+@login_required
+@regulator_required
+def regulator_search():
+	return render_template('regulator/search.html')
 
 if __name__ == '__main__':
 	app.run(debug=True)

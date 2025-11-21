@@ -7,6 +7,9 @@
 			<div class="dashboard-sidebar p-3 bg-light rounded shadow-sm">
 				<h6 class="text-uppercase text-muted mb-3">Admin Options</h6>
 				<div class="d-grid gap-2">
+					<a class="btn btn-primary sidebar-btn" href="{{ url_for('admin_search') }}">
+						<i class="bi bi-search"></i> Search
+					</a>
 					<a class="btn btn-outline-primary sidebar-btn" href="{{ url_for('user_management') }}">User Management</a>
 					<a class="btn btn-outline-warning sidebar-btn" href="{{ url_for('review_insurer_requests') }}">
 						Insurer Requests
