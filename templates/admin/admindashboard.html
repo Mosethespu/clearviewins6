@@ -17,6 +17,12 @@
 							<span class="badge bg-danger">{{ pending_count }}</span>
 						{% endif %}
 					</a>
+					<a class="btn btn-outline-warning sidebar-btn" href="{{ url_for('review_regulator_requests') }}">
+						Regulator Requests
+						{% if pending_regulator_count > 0 %}
+							<span class="badge bg-danger">{{ pending_regulator_count }}</span>
+						{% endif %}
+					</a>
 					<a class="btn btn-outline-primary sidebar-btn" href="#">View All Policies</a>
 					<a class="btn btn-outline-primary sidebar-btn" href="#">View All Claims</a>
 					<a class="btn btn-outline-primary sidebar-btn" href="#">System Reports</a>
@@ -123,16 +129,22 @@
 										<thead class="table-light">
 											<tr>
 												<th>Username</th>
-												<th>Staff ID</th>
+												<th>Body</th>
 												<th>Status</th>
 											</tr>
 										</thead>
 										<tbody>
-											{% for regulator in regulators %}
+											{% for regulator in regulators[:5] %}
 											<tr>
 												<td>{{ regulator.username }}</td>
-												<td>{{ regulator.staff_id }}</td>
-												<td><span class="badge bg-success">Active</span></td>
+												<td>{{ regulator.regulatory_body.name if regulator.regulatory_body else 'N/A' }}</td>
+												<td>
+													{% if regulator.is_approved %}
+														<span class="badge bg-success">Approved</span>
+													{% else %}
+														<span class="badge bg-warning">Pending</span>
+													{% endif %}
+												</td>
 											</tr>
 											{% else %}
 											<tr>

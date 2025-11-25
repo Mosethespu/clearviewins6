@@ -2,8 +2,8 @@
 from flask import Flask, render_template, redirect, url_for, flash, request
 from config import Config
 from extension import db, login_manager, migrate, cache
-from models import Admin, Customer, Insurer, Regulator, InsuranceCompany, InsurerRequest
-from forms import SignupForm, LoginForm, InsurerAccessRequestForm
+from models import Admin, Customer, Insurer, Regulator, InsuranceCompany, InsurerRequest, RegulatoryBody, RegulatorRequest
+from forms import SignupForm, LoginForm, InsurerAccessRequestForm, RegulatorAccessRequestForm
 from flask_login import login_user, logout_user, current_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
 from decorators import admin_required, customer_required, insurer_required, regulator_required
@@ -54,6 +54,12 @@ INSURANCE_COMPANIES = [
 	"Amaco Insurance Ltd"
 ]
 
+# Regulatory bodies data
+REGULATORY_BODIES = [
+	"Insurance Regulatory Authority (IRA)",
+	"National Transport and Safety Authority (NTSA)"
+]
+
 with app.app_context():
 	try:
 		db.create_all()
@@ -84,6 +90,14 @@ with app.app_context():
 				db.session.add(company)
 			db.session.commit()
 			print(f"Added {len(INSURANCE_COMPANIES)} insurance companies to database")
+		
+		# Populate regulatory bodies if not exists
+		if RegulatoryBody.query.count() == 0:
+			for body_name in REGULATORY_BODIES:
+				body = RegulatoryBody(name=body_name)
+				db.session.add(body)
+			db.session.commit()
+			print(f"Added {len(REGULATORY_BODIES)} regulatory bodies to database")
 			
 	except Exception as e:
 		app.logger.warning(f"Database initialization warning: {e}")
@@ -159,7 +173,8 @@ def signup():
 			# Insurers need to be approved, so is_approved=False by default
 			user = Insurer(username=username, email=email, password=hashed_password, staff_id=None, is_approved=False)
 		elif user_type == 'regulator':
-			user = Regulator(username=username, email=email, password=hashed_password, staff_id=staff_id)
+			# Regulators need to be approved, so is_approved=False by default
+			user = Regulator(username=username, email=email, password=hashed_password, staff_id=None, is_approved=False)
 		else:
 			flash('Invalid user type.', 'danger')
 			return render_template('signup.html', form=form)
@@ -233,13 +248,15 @@ def admin_dashboard():
 	customers = Customer.query.all()
 	insurers = Insurer.query.all()
 	regulators = Regulator.query.all()
-	pending_count = InsurerRequest.query.filter_by(status='pending').count()
+	pending_insurer_count = InsurerRequest.query.filter_by(status='pending').count()
+	pending_regulator_count = RegulatorRequest.query.filter_by(status='pending').count()
 	
 	return render_template('admin/admindashboard.html', 
 						   customers=customers, 
 						   insurers=insurers, 
 						   regulators=regulators,
-						   pending_count=pending_count)
+						   pending_count=pending_insurer_count,
+						   pending_regulator_count=pending_regulator_count)
 
 @app.route('/admin/search')
 @login_required
@@ -309,6 +326,69 @@ def reject_insurer_request(request_id):
 	
 	flash(f'Access request for {access_request.insurer.username} has been rejected.', 'info')
 	return redirect(url_for('review_insurer_requests'))
+
+@app.route('/admin/regulator-requests')
+@login_required
+@admin_required
+def review_regulator_requests():
+	pending_requests = RegulatorRequest.query.filter_by(status='pending').order_by(RegulatorRequest.request_date.desc()).all()
+	approved_requests = RegulatorRequest.query.filter_by(status='approved').order_by(RegulatorRequest.reviewed_date.desc()).all()
+	rejected_requests = RegulatorRequest.query.filter_by(status='rejected').order_by(RegulatorRequest.reviewed_date.desc()).all()
+	
+	return render_template('admin/review_regulator_requests.html',
+						   pending_requests=pending_requests,
+						   approved_requests=approved_requests,
+						   rejected_requests=rejected_requests)
+
+@app.route('/admin/approve-regulator-request/<int:request_id>', methods=['POST'])
+@login_required
+@admin_required
+def approve_regulator_request(request_id):
+	access_request = RegulatorRequest.query.get_or_404(request_id)
+	
+	if access_request.status != 'pending':
+		flash('This request has already been reviewed.', 'warning')
+		return redirect(url_for('review_regulator_requests'))
+	
+	# Update request status
+	access_request.status = 'approved'
+	access_request.reviewed_date = datetime.utcnow()
+	access_request.reviewed_by = current_user.id
+	
+	# Update regulator record
+	regulator = access_request.regulator
+	regulator.is_approved = True
+	regulator.staff_id = access_request.staff_id
+	regulator.regulatory_body_id = access_request.regulatory_body_id
+	regulator.approval_date = datetime.utcnow()
+	
+	db.session.commit()
+	
+	flash(f'Access request for {regulator.username} has been approved.', 'success')
+	return redirect(url_for('review_regulator_requests'))
+
+@app.route('/admin/reject-regulator-request/<int:request_id>', methods=['POST'])
+@login_required
+@admin_required
+def reject_regulator_request(request_id):
+	access_request = RegulatorRequest.query.get_or_404(request_id)
+	
+	if access_request.status != 'pending':
+		flash('This request has already been reviewed.', 'warning')
+		return redirect(url_for('review_regulator_requests'))
+	
+	rejection_reason = request.form.get('rejection_reason', 'No reason provided')
+	
+	# Update request status
+	access_request.status = 'rejected'
+	access_request.reviewed_date = datetime.utcnow()
+	access_request.reviewed_by = current_user.id
+	access_request.rejection_reason = rejection_reason
+	
+	db.session.commit()
+	
+	flash(f'Access request for {access_request.regulator.username} has been rejected.', 'info')
+	return redirect(url_for('review_regulator_requests'))
 
 @app.route('/admin/user-management')
 @login_required
@@ -475,7 +555,65 @@ def request_insurer_access():
 @login_required
 @regulator_required
 def regulator_dashboard():
+	# Check if regulator is approved
+	if not current_user.is_approved:
+		# Check if they have a pending request
+		pending_request = RegulatorRequest.query.filter_by(
+			regulator_id=current_user.id,
+			status='pending'
+		).first()
+		
+		if pending_request:
+			return render_template('regulator/pending_approval.html', request=pending_request)
+		else:
+			# No request yet, redirect to request access page
+			return redirect(url_for('request_regulator_access'))
+	
+	# Regulator is approved, show dashboard
 	return render_template('regulator/regulatordashboard.html')
+
+@app.route('/regulator/request-access', methods=['GET', 'POST'])
+@login_required
+@regulator_required
+def request_regulator_access():
+	# Check if already approved
+	if current_user.is_approved:
+		return redirect(url_for('regulator_dashboard'))
+	
+	# Check if there's already a pending request
+	existing_request = RegulatorRequest.query.filter_by(
+		regulator_id=current_user.id,
+		status='pending'
+	).first()
+	
+	if existing_request:
+		return render_template('regulator/pending_approval.html', request=existing_request)
+	
+	form = RegulatorAccessRequestForm()
+	
+	# Populate regulatory body choices
+	bodies = RegulatoryBody.query.filter_by(is_active=True).order_by(RegulatoryBody.name).all()
+	form.regulatory_body.choices = [(b.id, b.name) for b in bodies]
+	
+	if form.validate_on_submit():
+		staff_id = form.staff_id.data
+		regulatory_body_id = form.regulatory_body.data
+		
+		# Create access request
+		access_request = RegulatorRequest(
+			regulator_id=current_user.id,
+			staff_id=staff_id,
+			regulatory_body_id=regulatory_body_id,
+			status='pending'
+		)
+		
+		db.session.add(access_request)
+		db.session.commit()
+		
+		flash('Your access request has been submitted. Please wait for admin approval.', 'success')
+		return redirect(url_for('regulator_dashboard'))
+	
+	return render_template('regulator/request_access.html', form=form)
 
 @app.route('/regulator/search')
 @login_required

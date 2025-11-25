@@ -30,6 +30,12 @@ class InsuranceCompany(db.Model):
 	is_active = db.Column(db.Boolean, default=True, nullable=False)
 	insurers = db.relationship('Insurer', backref='company', lazy=True)
 
+class RegulatoryBody(db.Model):
+	id = db.Column(db.Integer, primary_key=True)
+	name = db.Column(db.String(200), unique=True, nullable=False)
+	is_active = db.Column(db.Boolean, default=True, nullable=False)
+	regulators = db.relationship('Regulator', backref='regulatory_body', lazy=True)
+
 class Insurer(UserMixin, db.Model):
 	id = db.Column(db.Integer, primary_key=True)
 	username = db.Column(db.String(150), unique=True, nullable=False)
@@ -65,7 +71,25 @@ class Regulator(UserMixin, db.Model):
 	email = db.Column(db.String(150), unique=True, nullable=False)
 	password = db.Column(db.String(256), nullable=False)
 	staff_id = db.Column(db.String(50), unique=True, nullable=True)
+	regulatory_body_id = db.Column(db.Integer, db.ForeignKey('regulatory_body.id'), nullable=True)
+	is_approved = db.Column(db.Boolean, default=False, nullable=False)
 	is_active = db.Column(db.Boolean, default=True, nullable=False)
+	approval_date = db.Column(db.DateTime, nullable=True)
 	
 	def get_id(self):
 		return f"regulator_{self.id}"
+
+class RegulatorRequest(db.Model):
+	id = db.Column(db.Integer, primary_key=True)
+	regulator_id = db.Column(db.Integer, db.ForeignKey('regulator.id'), nullable=False)
+	staff_id = db.Column(db.String(50), nullable=False)
+	regulatory_body_id = db.Column(db.Integer, db.ForeignKey('regulatory_body.id'), nullable=False)
+	status = db.Column(db.String(20), default='pending', nullable=False)  # pending, approved, rejected
+	request_date = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+	reviewed_date = db.Column(db.DateTime, nullable=True)
+	reviewed_by = db.Column(db.Integer, db.ForeignKey('admin.id'), nullable=True)
+	rejection_reason = db.Column(db.Text, nullable=True)
+	
+	regulator = db.relationship('Regulator', backref='requests', lazy=True)
+	regulatory_body = db.relationship('RegulatoryBody', backref='requests', lazy=True)
+	reviewer = db.relationship('Admin', backref='reviewed_regulator_requests', lazy=True)

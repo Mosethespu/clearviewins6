@@ -22,6 +22,11 @@ class InsurerAccessRequestForm(FlaskForm):
 	insurance_company = SelectField('Insurance Company', coerce=int, validators=[DataRequired()])
 	submit = SubmitField('Request Access')
 
+class RegulatorAccessRequestForm(FlaskForm):
+	staff_id = StringField('Staff ID', validators=[DataRequired(), Length(min=3, max=50)])
+	regulatory_body = SelectField('Regulatory Body', coerce=int, validators=[DataRequired()])
+	submit = SubmitField('Request Access')
+
 class ReviewRequestForm(FlaskForm):
 	rejection_reason = TextAreaField('Rejection Reason (if rejecting)', validators=[Optional()])
 	submit = SubmitField('Submit')
