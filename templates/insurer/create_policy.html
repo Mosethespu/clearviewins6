@@ -1,0 +1,481 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold mb-0">Create New Policy</h3>
+        <a href="{{ url_for('insurer_dashboard') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <form method="POST" id="policyForm" enctype="multipart/form-data">
+        {{ form.hidden_tag() }}
+        
+        <!-- Section A: Policy Information -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="bi bi-file-text"></i> Section A: Policy Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Policy Number</label>
+                        <input type="text" class="form-control" id="policy_number" readonly value="Auto-generated">
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.policy_type.label(class="form-label") }}
+                        {{ form.policy_type(class="form-control", id="policy_type") }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ form.effective_date.label(class="form-label") }}
+                        {{ form.effective_date(class="form-control", id="effective_date") }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Expiry Date</label>
+                        <input type="text" class="form-control" id="expiry_date" readonly>
+                    </div>
+                    <div class="col-md-4">
+                        {{ form.premium_amount.label(class="form-label") }}
+                        {{ form.premium_amount(class="form-control", placeholder="0.00") }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.payment_mode.label(class="form-label") }}
+                        {{ form.payment_mode(class="form-control") }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section B: Insured Details -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-person"></i> Section B: Insured Details</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        {{ form.insured_name.label(class="form-label") }}
+                        {{ form.insured_name(class="form-control") }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.national_id.label(class="form-label") }}
+                        {{ form.national_id(class="form-control") }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.kra_pin.label(class="form-label") }}
+                        {{ form.kra_pin(class="form-control", placeholder="Optional") }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.date_of_birth.label(class="form-label") }}
+                        {{ form.date_of_birth(class="form-control") }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.phone_number.label(class="form-label") }}
+                        {{ form.phone_number(class="form-control", placeholder="+254") }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.email_address.label(class="form-label") }}
+                        {{ form.email_address(class="form-control") }}
+                    </div>
+                    <div class="col-12">
+                        {{ form.postal_address.label(class="form-label") }}
+                        {{ form.postal_address(class="form-control", rows="3") }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section C: Vehicle Details -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="bi bi-car-front"></i> Section C: Vehicle Details</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        {{ form.registration_number.label(class="form-label") }}
+                        {{ form.registration_number(class="form-control", style="text-transform: uppercase;") }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.make_model.label(class="form-label") }}
+                        {{ form.make_model(class="form-control") }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ form.year_of_manufacture.label(class="form-label") }}
+                        {{ form.year_of_manufacture(class="form-control") }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ form.body_type.label(class="form-label") }}
+                        {{ form.body_type(class="form-control") }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ form.color.label(class="form-label") }}
+                        {{ form.color(class="form-control") }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.chassis_number.label(class="form-label") }}
+                        {{ form.chassis_number(class="form-control") }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.engine_number.label(class="form-label") }}
+                        {{ form.engine_number(class="form-control") }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.seating_capacity.label(class="form-label") }}
+                        {{ form.seating_capacity(class="form-control") }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.use_category.label(class="form-label") }}
+                        {{ form.use_category(class="form-control") }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section D: Coverage & Add-ons -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="bi bi-shield-check"></i> Section D: Coverage & Add-ons</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        {{ form.sum_insured.label(class="form-label") }}
+                        {{ form.sum_insured(class="form-control", placeholder="0.00") }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.excess.label(class="form-label") }}
+                        {{ form.excess(class="form-control", placeholder="0.00") }}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-bold">Optional Covers:</label>
+                        <div class="form-check">
+                            {{ form.political_violence(class="form-check-input") }}
+                            {{ form.political_violence.label(class="form-check-label") }}
+                        </div>
+                        <div class="form-check">
+                            {{ form.windscreen_cover(class="form-check-input") }}
+                            {{ form.windscreen_cover.label(class="form-check-label") }}
+                        </div>
+                        <div class="form-check">
+                            {{ form.passenger_liability(class="form-check-input") }}
+                            {{ form.passenger_liability.label(class="form-check-label") }}
+                        </div>
+                        <div class="form-check">
+                            {{ form.road_rescue(class="form-check-input") }}
+                            {{ form.road_rescue.label(class="form-check-label") }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section F: Vehicle Photos Upload -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0"><i class="bi bi-camera"></i> Section F: Vehicle Photos Upload</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3">Please upload clear photos of the vehicle. All photos are required.</p>
+                
+                <div class="row g-3" id="photoSection">
+                    <!-- Exterior Photos -->
+                    <div class="col-12"><h6 class="text-info">Exterior Photos</h6></div>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="upload-box" data-photo-type="front_view">
+                            <label class="form-label">Front View *</label>
+                            <input type="file" name="front_view" class="form-control photo-input" accept="image/*" required>
+                            <div class="preview-container mt-2"></div>
+                            <div class="progress mt-2 d-none">
+                                <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="upload-box" data-photo-type="left_side">
+                            <label class="form-label">Left Side View *</label>
+                            <input type="file" name="left_side" class="form-control photo-input" accept="image/*" required>
+                            <div class="preview-container mt-2"></div>
+                            <div class="progress mt-2 d-none">
+                                <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="upload-box" data-photo-type="right_side">
+                            <label class="form-label">Right Side View *</label>
+                            <input type="file" name="right_side" class="form-control photo-input" accept="image/*" required>
+                            <div class="preview-container mt-2"></div>
+                            <div class="progress mt-2 d-none">
+                                <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="upload-box" data-photo-type="rear_view">
+                            <label class="form-label">Rear View *</label>
+                            <input type="file" name="rear_view" class="form-control photo-input" accept="image/*" required>
+                            <div class="preview-container mt-2"></div>
+                            <div class="progress mt-2 d-none">
+                                <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="upload-box" data-photo-type="engine_bay">
+                            <label class="form-label">Engine Bay *</label>
+                            <input type="file" name="engine_bay" class="form-control photo-input" accept="image/*" required>
+                            <div class="preview-container mt-2"></div>
+                            <div class="progress mt-2 d-none">
+                                <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="upload-box" data-photo-type="underneath">
+                            <label class="form-label">Underneath (Chassis) *</label>
+                            <input type="file" name="underneath" class="form-control photo-input" accept="image/*" required>
+                            <div class="preview-container mt-2"></div>
+                            <div class="progress mt-2 d-none">
+                                <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="upload-box" data-photo-type="roof">
+                            <label class="form-label">Roof *</label>
+                            <input type="file" name="roof" class="form-control photo-input" accept="image/*" required>
+                            <div class="preview-container mt-2"></div>
+                            <div class="progress mt-2 d-none">
+                                <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Interior Photos -->
+                    <div class="col-12 mt-4"><h6 class="text-info">Interior Photos</h6></div>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="upload-box" data-photo-type="instrument_cluster">
+                            <label class="form-label">Instrument Cluster *</label>
+                            <input type="file" name="instrument_cluster" class="form-control photo-input" accept="image/*" required>
+                            <div class="preview-container mt-2"></div>
+                            <div class="progress mt-2 d-none">
+                                <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="upload-box" data-photo-type="front_interior">
+                            <label class="form-label">Front Interior *</label>
+                            <input type="file" name="front_interior" class="form-control photo-input" accept="image/*" required>
+                            <div class="preview-container mt-2"></div>
+                            <div class="progress mt-2 d-none">
+                                <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="upload-box" data-photo-type="back_interior">
+                            <label class="form-label">Back Interior *</label>
+                            <input type="file" name="back_interior" class="form-control photo-input" accept="image/*" required>
+                            <div class="preview-container mt-2"></div>
+                            <div class="progress mt-2 d-none">
+                                <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="upload-box" data-photo-type="boot_trunk">
+                            <label class="form-label">Boot/Trunk *</label>
+                            <input type="file" name="boot_trunk" class="form-control photo-input" accept="image/*" required>
+                            <div class="preview-container mt-2"></div>
+                            <div class="progress mt-2 d-none">
+                                <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="alert alert-warning mt-3" id="uploadWarning">
+                    <i class="bi bi-exclamation-triangle"></i> All vehicle photos must be uploaded before submission.
+                </div>
+            </div>
+        </div>
+
+        <!-- Section E: Confirmation -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0"><i class="bi bi-check-circle"></i> Confirmation</h5>
+            </div>
+            <div class="card-body">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="confirmation" required>
+                    <label class="form-check-label" for="confirmation">
+                        I confirm that the above information has been verified and entered correctly.
+                    </label>
+                </div>
+                <p class="text-muted mt-2 mb-0">
+                    <strong>Entered by:</strong> {{ current_user.username }} ({{ current_user.company.name if current_user.company else 'N/A' }})<br>
+                    <strong>Date:</strong> <span id="currentDate"></span>
+                </p>
+            </div>
+        </div>
+
+        <div class="d-grid gap-2 col-md-6 mx-auto mb-5">
+            {{ form.submit(class="btn btn-info btn-lg", id="submitBtn", disabled=true) }}
+        </div>
+    </form>
+</div>
+
+<style>
+.upload-box {
+    border: 2px dashed #dee2e6;
+    border-radius: 8px;
+    padding: 15px;
+    background: #f8f9fa;
+}
+.upload-box:hover {
+    border-color: #0dcaf0;
+    background: #e7f7ff;
+}
+.preview-container img {
+    max-width: 100%;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 4px;
+}
+.progress {
+    height: 20px;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-calculate expiry date (1 year from effective date)
+    const effectiveDateInput = document.getElementById('effective_date');
+    const expiryDateInput = document.getElementById('expiry_date');
+    
+    effectiveDateInput.addEventListener('change', function() {
+        if (this.value) {
+            const effectiveDate = new Date(this.value);
+            effectiveDate.setFullYear(effectiveDate.getFullYear() + 1);
+            expiryDateInput.value = effectiveDate.toISOString().split('T')[0];
+        }
+    });
+    
+    // Auto-generate policy number based on policy type
+    const policyTypeSelect = document.getElementById('policy_type');
+    const policyNumberInput = document.getElementById('policy_number');
+    
+    policyTypeSelect.addEventListener('change', function() {
+        const prefix = this.value === 'Comprehensive' ? 'CO' : 'TO';
+        policyNumberInput.value = `${prefix}-XXXX (will be generated)`;
+    });
+    
+    // Set current date
+    document.getElementById('currentDate').textContent = new Date().toLocaleDateString();
+    
+    // Handle photo uploads with progress tracking (simulated for now)
+    const photoInputs = document.querySelectorAll('.photo-input');
+    const uploadedPhotos = new Set();
+    const totalPhotos = photoInputs.length;
+    const submitBtn = document.getElementById('submitBtn');
+    const uploadWarning = document.getElementById('uploadWarning');
+    
+    photoInputs.forEach(input => {
+        input.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            // Validate file size (max 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                alert('File size must be less than 5MB');
+                this.value = '';
+                return;
+            }
+            
+            // Validate file type
+            if (!file.type.startsWith('image/')) {
+                alert('Only image files are allowed');
+                this.value = '';
+                return;
+            }
+            
+            const uploadBox = this.closest('.upload-box');
+            const photoType = uploadBox.dataset.photoType;
+            const preview = uploadBox.querySelector('.preview-container');
+            const progressDiv = uploadBox.querySelector('.progress');
+            const progressBar = progressDiv.querySelector('.progress-bar');
+            
+            // Show preview
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                preview.innerHTML = `<img src="${e.target.result}" alt="${photoType}">`;
+            };
+            reader.readAsDataURL(file);
+            
+            // Simulate upload progress (will be replaced with actual AJAX in production)
+            progressDiv.classList.remove('d-none');
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 10;
+                progressBar.style.width = progress + '%';
+                progressBar.textContent = progress + '%';
+                
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    progressBar.classList.add('bg-success');
+                    setTimeout(() => {
+                        progressDiv.classList.add('d-none');
+                        uploadedPhotos.add(photoType);
+                        checkAllUploads();
+                    }, 500);
+                }
+            }, 100);
+        });
+    });
+    
+    function checkAllUploads() {
+        const confirmation = document.getElementById('confirmation');
+        if (uploadedPhotos.size === totalPhotos && confirmation.checked) {
+            submitBtn.disabled = false;
+            uploadWarning.classList.add('d-none');
+        } else if (uploadedPhotos.size === totalPhotos) {
+            uploadWarning.innerHTML = '<i class="bi bi-check-circle"></i> All photos uploaded! Please check the confirmation box to submit.';
+            uploadWarning.classList.remove('alert-warning');
+            uploadWarning.classList.add('alert-success');
+        }
+    }
+    
+    document.getElementById('confirmation').addEventListener('change', checkAllUploads);
+    
+    // Convert registration number to uppercase
+    document.getElementById('registration_number').addEventListener('input', function() {
+        this.value = this.value.toUpperCase();
+    });
+    
+    // Form validation before submit
+    document.getElementById('policyForm').addEventListener('submit', function(e) {
+        if (uploadedPhotos.size < totalPhotos) {
+            e.preventDefault();
+            alert('Please upload all required vehicle photos before submitting.');
+            return false;
+        }
+    });
+});
+</script>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+{% endblock %}

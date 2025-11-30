@@ -1,13 +1,15 @@
 
-from flask import Flask, render_template, redirect, url_for, flash, request
+from flask import Flask, render_template, redirect, url_for, flash, request, jsonify, send_from_directory
 from config import Config
 from extension import db, login_manager, migrate, cache
-from models import Admin, Customer, Insurer, Regulator, InsuranceCompany, InsurerRequest, RegulatoryBody, RegulatorRequest
-from forms import SignupForm, LoginForm, InsurerAccessRequestForm, RegulatorAccessRequestForm
+from models import Admin, Customer, Insurer, Regulator, InsuranceCompany, InsurerRequest, RegulatoryBody, RegulatorRequest, Policy, PolicyPhoto
+from forms import SignupForm, LoginForm, InsurerAccessRequestForm, RegulatorAccessRequestForm, PolicyCreationForm
 from flask_login import login_user, logout_user, current_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 from decorators import admin_required, customer_required, insurer_required, regulator_required
 from datetime import datetime
+import os
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -499,14 +501,284 @@ def insurer_dashboard():
 			# No request yet, redirect to request access page
 			return redirect(url_for('request_insurer_access'))
 	
-	# Insurer is approved, show dashboard
-	return render_template('insurer/insurerdashboard.html')
+	# Get dashboard statistics
+	company_id = current_user.insurance_company_id
+	
+	# Total policies
+	total_policies = Policy.query.filter_by(insurance_company_id=company_id).count()
+	
+	# Active policies (not expired)
+	active_policies = Policy.query.filter_by(insurance_company_id=company_id).filter(
+		Policy.expiry_date >= datetime.now().date()
+	).count()
+	
+	# Recent policies (last 5)
+	recent_policies = Policy.query.filter_by(insurance_company_id=company_id).order_by(
+		Policy.date_entered.desc()
+	).limit(5).all()
+	
+	# Calculate total premium for active policies
+	total_premium = db.session.query(db.func.sum(Policy.premium_amount)).filter(
+		Policy.insurance_company_id == company_id,
+		Policy.expiry_date >= datetime.now().date()
+	).scalar() or 0
+	
+	# Insurer is approved, show dashboard with data
+	return render_template('insurer/insurerdashboard.html',
+						   total_policies=total_policies,
+						   active_policies=active_policies,
+						   recent_policies=recent_policies,
+						   total_premium=total_premium,
+						   now=datetime.now())
 
 @app.route('/insurer/search')
 @login_required
 @insurer_required
 def insurer_search():
 	return render_template('insurer/search.html')
+
+@app.route('/insurer/create-policy', methods=['GET', 'POST'])
+@login_required
+@insurer_required
+def create_policy():
+	# Ensure insurer is approved
+	if not current_user.is_approved:
+		flash('You must be approved to create policies.', 'warning')
+		return redirect(url_for('insurer_dashboard'))
+	
+	form = PolicyCreationForm()
+	
+	if form.validate_on_submit():
+		# Generate policy number based on policy type
+		policy_type = form.policy_type.data
+		prefix = 'CO' if policy_type == 'Comprehensive' else 'TO'
+		
+		# Get the latest policy number for this type
+		last_policy = Policy.query.filter(
+			Policy.policy_number.like(f'{prefix}-%')
+		).order_by(Policy.id.desc()).first()
+		
+		if last_policy:
+			# Extract number and increment
+			last_num = int(last_policy.policy_number.split('-')[1])
+			new_num = last_num + 1
+		else:
+			new_num = 1
+		
+		policy_number = f'{prefix}-{str(new_num).zfill(4)}'
+		
+		# Calculate expiry date (1 year from effective date)
+		effective_date = form.effective_date.data
+		expiry_date = effective_date.replace(year=effective_date.year + 1)
+		
+		# Create new policy
+		new_policy = Policy(
+			policy_number=policy_number,
+			policy_type=policy_type,
+			effective_date=effective_date,
+			expiry_date=expiry_date,
+			premium_amount=form.premium_amount.data,
+			payment_mode=form.payment_mode.data,
+			insured_name=form.insured_name.data,
+			national_id=form.national_id.data,
+			kra_pin=form.kra_pin.data if form.kra_pin.data else None,
+			date_of_birth=form.date_of_birth.data,
+			phone_number=form.phone_number.data,
+			email_address=form.email_address.data,
+			postal_address=form.postal_address.data,
+			registration_number=form.registration_number.data.upper(),
+			make_model=form.make_model.data,
+			year_of_manufacture=form.year_of_manufacture.data,
+			body_type=form.body_type.data,
+			color=form.color.data,
+			chassis_number=form.chassis_number.data,
+			engine_number=form.engine_number.data,
+			seating_capacity=form.seating_capacity.data,
+			use_category=form.use_category.data,
+			sum_insured=form.sum_insured.data,
+			excess=form.excess.data,
+			political_violence=form.political_violence.data,
+			windscreen_cover=form.windscreen_cover.data,
+			passenger_liability=form.passenger_liability.data,
+			road_rescue=form.road_rescue.data,
+			insurance_company_id=current_user.insurance_company_id,
+			created_by=current_user.id
+		)
+		
+		db.session.add(new_policy)
+		db.session.commit()
+		
+		# Handle photo uploads
+		photo_types = [
+			'front_view', 'left_side', 'right_side', 'rear_view', 
+			'engine_bay', 'underneath', 'roof', 'instrument_cluster',
+			'front_interior', 'back_interior', 'boot_trunk'
+		]
+		
+		# Create upload directory for this policy
+		upload_dir = os.path.join(app.root_path, 'upload', 'insurer', str(new_policy.id))
+		os.makedirs(upload_dir, exist_ok=True)
+		
+		# Save each photo
+		for photo_type in photo_types:
+			if photo_type in request.files:
+				file = request.files[photo_type]
+				if file and file.filename:
+					# Secure filename and save
+					filename = secure_filename(f"{photo_type}_{file.filename}")
+					file_path = os.path.join(upload_dir, filename)
+					file.save(file_path)
+					
+					# Save photo record to database (path relative to upload directory)
+					relative_path = os.path.join('insurer', str(new_policy.id), filename)
+					photo = PolicyPhoto(
+						policy_id=new_policy.id,
+						photo_type=photo_type,
+						file_path=relative_path
+					)
+					db.session.add(photo)
+		
+		db.session.commit()
+		
+		flash(f'Policy {policy_number} created successfully!', 'success')
+		return redirect(url_for('insurer_dashboard'))
+	
+	return render_template('insurer/create_policy.html', form=form)
+
+@app.route('/insurer/upload-photo/<int:policy_id>', methods=['POST'])
+@login_required
+@insurer_required
+def upload_photo(policy_id):
+	"""AJAX endpoint for uploading policy photos"""
+	policy = Policy.query.get_or_404(policy_id)
+	
+	# Verify policy belongs to insurer's company
+	if policy.insurance_company_id != current_user.insurance_company_id:
+		return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+	
+	if 'photo' not in request.files:
+		return jsonify({'success': False, 'error': 'No photo provided'}), 400
+	
+	file = request.files['photo']
+	photo_type = request.form.get('photo_type')
+	
+	if file.filename == '':
+		return jsonify({'success': False, 'error': 'No file selected'}), 400
+	
+	if not photo_type:
+		return jsonify({'success': False, 'error': 'Photo type not specified'}), 400
+	
+	# Create upload directory for this policy
+	upload_dir = os.path.join(app.root_path, 'upload', 'insurer', str(policy_id))
+	os.makedirs(upload_dir, exist_ok=True)
+	
+	# Secure filename and save
+	filename = secure_filename(f"{photo_type}_{file.filename}")
+	file_path = os.path.join(upload_dir, filename)
+	file.save(file_path)
+	
+	# Save photo record to database (path relative to upload directory)
+	relative_path = os.path.join('insurer', str(policy_id), filename)
+	photo = PolicyPhoto(
+		policy_id=policy_id,
+		photo_type=photo_type,
+		file_path=relative_path
+	)
+	db.session.add(photo)
+	db.session.commit()
+	
+	return jsonify({
+		'success': True,
+		'photo_id': photo.id,
+		'file_path': relative_path
+	})
+
+@app.route('/insurer/manage-policies')
+@login_required
+@insurer_required
+def manage_policies():
+	"""View and manage all policies created by the insurer's company"""
+	# Ensure insurer is approved
+	if not current_user.is_approved:
+		flash('You must be approved to manage policies.', 'warning')
+		return redirect(url_for('insurer_dashboard'))
+	
+	# Get filter parameters
+	search_query = request.args.get('search', '')
+	policy_type_filter = request.args.get('policy_type', '')
+	status_filter = request.args.get('status', 'all')
+	
+	# Base query - get all policies from insurer's company
+	policies_query = Policy.query.filter_by(insurance_company_id=current_user.insurance_company_id)
+	
+	# Apply search filter
+	if search_query:
+		search_pattern = f"%{search_query}%"
+		policies_query = policies_query.filter(
+			db.or_(
+				Policy.policy_number.ilike(search_pattern),
+				Policy.insured_name.ilike(search_pattern),
+				Policy.registration_number.ilike(search_pattern),
+				Policy.national_id.ilike(search_pattern)
+			)
+		)
+	
+	# Apply policy type filter
+	if policy_type_filter:
+		policies_query = policies_query.filter_by(policy_type=policy_type_filter)
+	
+	# Apply status filter (active/expired)
+	if status_filter == 'active':
+		policies_query = policies_query.filter(Policy.expiry_date >= datetime.now().date())
+	elif status_filter == 'expired':
+		policies_query = policies_query.filter(Policy.expiry_date < datetime.now().date())
+	
+	# Order by creation date (newest first)
+	policies = policies_query.order_by(Policy.date_entered.desc()).all()
+	
+	# Calculate statistics
+	total_policies = Policy.query.filter_by(insurance_company_id=current_user.insurance_company_id).count()
+	active_policies = Policy.query.filter_by(insurance_company_id=current_user.insurance_company_id).filter(
+		Policy.expiry_date >= datetime.now().date()
+	).count()
+	expired_policies = total_policies - active_policies
+	
+	return render_template('insurer/manage_policies.html', 
+						   policies=policies,
+						   search_query=search_query,
+						   policy_type_filter=policy_type_filter,
+						   status_filter=status_filter,
+						   total_policies=total_policies,
+						   active_policies=active_policies,
+						   expired_policies=expired_policies,
+						   now=datetime.now())
+
+@app.route('/insurer/policy/<int:policy_id>')
+@login_required
+@insurer_required
+def view_policy(policy_id):
+	"""View detailed information about a specific policy"""
+	policy = Policy.query.get_or_404(policy_id)
+	
+	# Verify policy belongs to insurer's company
+	if policy.insurance_company_id != current_user.insurance_company_id:
+		flash('You do not have permission to view this policy.', 'danger')
+		return redirect(url_for('manage_policies'))
+	
+	# Get policy photos
+	photos = PolicyPhoto.query.filter_by(policy_id=policy_id).all()
+	
+	# Get policy creator information
+	creator = Insurer.query.get(policy.created_by)
+	
+	# Check if policy is active
+	is_active = policy.expiry_date >= datetime.now().date()
+	
+	return render_template('insurer/view_policy.html', 
+						   policy=policy,
+						   photos=photos,
+						   creator=creator,
+						   is_active=is_active)
 
 @app.route('/insurer/request-access', methods=['GET', 'POST'])
 @login_required
@@ -620,6 +892,12 @@ def request_regulator_access():
 @regulator_required
 def regulator_search():
 	return render_template('regulator/search.html')
+
+@app.route('/uploads/<path:filename>')
+@login_required
+def uploaded_file(filename):
+	"""Serve uploaded files"""
+	return send_from_directory(os.path.join(app.root_path, 'upload'), filename)
 
 if __name__ == '__main__':
 	app.run(debug=True)

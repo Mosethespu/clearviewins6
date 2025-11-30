@@ -93,3 +93,57 @@ class RegulatorRequest(db.Model):
 	regulator = db.relationship('Regulator', backref='requests', lazy=True)
 	regulatory_body = db.relationship('RegulatoryBody', backref='requests', lazy=True)
 	reviewer = db.relationship('Admin', backref='reviewed_regulator_requests', lazy=True)
+
+class Policy(db.Model):
+	id = db.Column(db.Integer, primary_key=True)
+	policy_number = db.Column(db.String(50), unique=True, nullable=False)
+	policy_type = db.Column(db.String(50), nullable=False)  # Comprehensive, Third-Party Only, Third-Party Fire & Theft
+	effective_date = db.Column(db.Date, nullable=False)
+	expiry_date = db.Column(db.Date, nullable=False)
+	premium_amount = db.Column(db.Float, nullable=False)
+	payment_mode = db.Column(db.String(50), nullable=False)
+	
+	# Insured Details
+	insured_name = db.Column(db.String(200), nullable=False)
+	national_id = db.Column(db.String(50), nullable=False)
+	kra_pin = db.Column(db.String(50), nullable=True)
+	date_of_birth = db.Column(db.Date, nullable=False)
+	phone_number = db.Column(db.String(20), nullable=False)
+	email_address = db.Column(db.String(150), nullable=False)
+	postal_address = db.Column(db.Text, nullable=True)
+	
+	# Vehicle Details
+	registration_number = db.Column(db.String(50), nullable=False)
+	make_model = db.Column(db.String(150), nullable=False)
+	year_of_manufacture = db.Column(db.Integer, nullable=False)
+	chassis_number = db.Column(db.String(100), nullable=False)
+	engine_number = db.Column(db.String(100), nullable=False)
+	body_type = db.Column(db.String(50), nullable=False)
+	color = db.Column(db.String(50), nullable=False)
+	seating_capacity = db.Column(db.Integer, nullable=False)
+	use_category = db.Column(db.String(50), nullable=False)
+	
+	# Coverage Details
+	sum_insured = db.Column(db.Float, nullable=False)
+	excess = db.Column(db.Float, nullable=False)
+	political_violence = db.Column(db.Boolean, default=False)
+	windscreen_cover = db.Column(db.Boolean, default=False)
+	passenger_liability = db.Column(db.Boolean, default=False)
+	road_rescue = db.Column(db.Boolean, default=False)
+	
+	# Agent/Company Detailsi
+	insurance_company_id = db.Column(db.Integer, db.ForeignKey('insurance_company.id'), nullable=False)
+	created_by = db.Column(db.Integer, db.ForeignKey('insurer.id'), nullable=False)
+	date_entered = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+	
+	# Relationships
+	insurance_company = db.relationship('InsuranceCompany', backref='policies', lazy=True)
+	creator = db.relationship('Insurer', backref='created_policies', lazy=True)
+	photos = db.relationship('PolicyPhoto', backref='policy', lazy=True, cascade='all, delete-orphan')
+
+class PolicyPhoto(db.Model):
+	id = db.Column(db.Integer, primary_key=True)
+	policy_id = db.Column(db.Integer, db.ForeignKey('policy.id'), nullable=False)
+	photo_type = db.Column(db.String(50), nullable=False)  # front_view, left_side, etc.
+	file_path = db.Column(db.String(500), nullable=False)
+	uploaded_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
