@@ -1,0 +1,20 @@
+Premium calculator
+
+## 🚗 Motor Insurance Premiums in Kenya – Comparison
+
+| Cover Type | Basis of Calculation | Typical Rate / Premium | Example Calculation |
+|------------|----------------------|------------------------|---------------------|
+| **Comprehensive** | % of vehicle’s insured value (market/agreed value) | 4–7% of value | Toyota Prado valued at KES 4,000,000 → 5% = **KES 200,000/year** |
+| **Third-Party Only (TPO)** | Flat premium (not tied to vehicle value) | ~KES 7,500 – 10,000 annually | Toyota Corolla → flat premium = **KES 8,000/year** |
+| **Third-Party, Fire & Theft (TPFT)** | Flat TPO premium + % of vehicle value for fire/theft | TPO + 1–2% of value | Nissan Note valued at KES 1,000,000 → TPO (KES 8,000) + 1.5% (KES 15,000) = **KES 23,000/year** |
+| **PSV (Taxi, Matatu, Bus)** | Flat premium based on type of PSV and passenger risk | Taxi: ~KES 20k–30k<br>Matatu (14-seater): ~KES 60k–80k<br>Bus (40+ seater): ~KES 120k–150k | 14-seater Matatu → premium = **KES 70,000/year** |
+
+---
+
+## ⚖️ Key Takeaways
+- **Comprehensive** premiums scale with vehicle value.  
+- **Third-Party Only** is cheapest, flat rate regardless of car value.  
+- **Third-Party + Fire/Theft** adds a small % of value to the flat TPO premium.  
+- **PSVs** are risk-rated and much higher due to passenger liability.  
+
+--

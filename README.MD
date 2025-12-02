@@ -1,3 +1,6 @@
+# Introduction
+ - Clearinsure is an intergrated platform that connects policyholders, regulators and insurers on one platform that share vehicluar insurance information. This platform makes it easier to create a profile based on current and past history, enable fraud detection and provide accurate insights on the state of the vehicle insurance market in Kenya.
+ 
 # Development Guide: Podman, Podman Compose & GitHub
 
 ## 1. Prerequisites

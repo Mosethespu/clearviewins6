@@ -1,0 +1,198 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold mb-0">Manage Policies</h3>
+            <p class="text-muted mb-0">{{ current_user.company.name if current_user.company else 'Insurance Company' }}</p>
+        </div>
+        <div>
+            <a href="{{ url_for('create_policy') }}" class="btn btn-info me-2">
+                <i class="bi bi-plus-circle"></i> Create New Policy
+            </a>
+            <a href="{{ url_for('insurer_dashboard') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Statistics Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card shadow-sm border-info">
+                <div class="card-body text-center">
+                    <i class="bi bi-file-earmark-text text-info fs-1"></i>
+                    <h3 class="fw-bold text-info mt-2">{{ total_policies }}</h3>
+                    <p class="text-muted mb-0">Total Policies</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-success">
+                <div class="card-body text-center">
+                    <i class="bi bi-check-circle text-success fs-1"></i>
+                    <h3 class="fw-bold text-success mt-2">{{ active_policies }}</h3>
+                    <p class="text-muted mb-0">Active Policies</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-warning">
+                <div class="card-body text-center">
+                    <i class="bi bi-x-octagon text-warning fs-1"></i>
+                    <h3 class="fw-bold text-warning mt-2">{{ cancelled_policies }}</h3>
+                    <p class="text-muted mb-0">Cancelled Policies</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-danger">
+                <div class="card-body text-center">
+                    <i class="bi bi-x-circle text-danger fs-1"></i>
+                    <h3 class="fw-bold text-danger mt-2">{{ expired_policies }}</h3>
+                    <p class="text-muted mb-0">Expired Policies</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters and Search -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('manage_policies') }}" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Search</label>
+                    <input type="text" name="search" class="form-control" 
+                           placeholder="Policy number, name, registration..." 
+                           value="{{ search_query }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Policy Type</label>
+                    <select name="policy_type" class="form-select">
+                        <option value="">All Types</option>
+                        <option value="Comprehensive" {% if policy_type_filter == 'Comprehensive' %}selected{% endif %}>Comprehensive</option>
+                        <option value="Third Party" {% if policy_type_filter == 'Third Party' %}selected{% endif %}>Third Party</option>
+                        <option value="Third Party Fire & Theft" {% if policy_type_filter == 'Third Party Fire & Theft' %}selected{% endif %}>Third Party Fire & Theft</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-select">
+                        <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Status</option>
+                        <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+                        <option value="expired" {% if status_filter == 'expired' %}selected{% endif %}>Expired</option>
+                        <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-info w-100">
+                        <i class="bi bi-funnel"></i> Filter
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Policies Table -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0"><i class="bi bi-list-ul"></i> Policies List ({{ policies|length }} results)</h5>
+        </div>
+        <div class="card-body p-0">
+            {% if policies %}Engine
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Policy Number</th>
+                                <th>Insured Name</th>
+                                <th>Vehicle Reg.</th>
+                                <th>Type</th>
+                                <th>Effective Date</th>
+                                <th>Expiry Date</th>
+                                <th>Premium</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for policy in policies %}
+                                <tr class="{% if policy.status != 'Active' %}table-secondary{% endif %}">
+                                    <td>
+                                        <strong class="text-info">{{ policy.policy_number }}</strong>
+                                    </td>
+                                    <td>{{ policy.insured_name }}</td>
+                                    <td>
+                                        <span class="badge bg-dark">{{ policy.registration_number }}</span>
+                                    </td>
+                                    <td>
+                                        {% if policy.policy_type == 'Comprehensive' %}
+                                            <span class="badge bg-primary">{{ policy.policy_type }}</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ policy.policy_type }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ policy.effective_date.strftime('%d/%m/%Y') }}</td>
+                                    <td>{{ policy.expiry_date.strftime('%d/%m/%Y') }}</td>
+                                    <td>KES {{ "{:,.2f}".format(policy.premium_amount) }}</td>
+                                    <td>
+                                        {% if policy.status == 'Active' %}
+                                            <span class="badge bg-success">Active</span>
+                                        {% elif policy.status == 'Cancelled' %}
+                                            <span class="badge bg-warning">Cancelled</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Expired</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('view_policy', policy_id=policy.id) }}" 
+                                           class="btn btn-sm btn-info" title="View Details">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-inbox text-muted" style="font-size: 4rem;"></i>
+                    <h5 class="text-muted mt-3">No policies found</h5>
+                    <p class="text-muted">
+                        {% if search_query or policy_type_filter or status_filter != 'all' %}
+                            Try adjusting your filters or <a href="{{ url_for('manage_policies') }}">clear all filters</a>
+                        {% else %}
+                            <a href="{{ url_for('create_policy') }}" class="btn btn-info mt-2">
+                                <i class="bi bi-plus-circle"></i> Create your first policy
+                            </a>
+                        {% endif %}
+                    </p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+// Set current datetime for status calculations
+const now = new Date();
+document.addEventListener('DOMContentLoaded', function() {
+    // Optional: Add any client-side functionality here
+});
+</script>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+{% endblock %}

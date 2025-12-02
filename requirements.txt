@@ -7,12 +7,11 @@ flask-caching
 python-dotenv
 jinja2
 werkzeug
+email-validator
 
 pytest
 pytest-flask
 
-transformers
-torch
 sentencepiece
 
 gunicorn

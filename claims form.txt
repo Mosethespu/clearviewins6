@@ -1,0 +1,87 @@
+claims form
+-
+
+## 📝 Motor Insurance Accident Claim Form (with Format Instructions)
+
+### **Section A: Policy Information**
+- **Policy Number:** *(search field with auto-complete)*  
+  - Employee types registration number or insured name → system searches and pulls policy details.  
+  - Field is **read-only once selected**.  
+- **Insurance Company:** *(auto-filled from system)*  
+- **Type of Cover:** *(auto-filled from policy record)*  
+- **Insured Name:** *(auto-filled)*  
+- **National ID / Passport Number:** *(auto-filled)*  
+- **Phone Number:** *(auto-filled)*  
+- **Email Address:** *(auto-filled)*  
+
+---
+
+### **Section B: Vehicle Details**
+- **Registration Number (Plate):** *(auto-filled from policy)*  
+- **Make & Model:** *(auto-filled)*  
+- **Year of Manufacture:** *(auto-filled)*  
+- **Chassis Number:** *(auto-filled)*  
+- **Engine Number:** *(auto-filled)*  
+
+*(All vehicle details should be pulled from the policy record to avoid re-entry errors.)*
+
+---
+
+### **Section C: Accident Details**
+- **Date of Accident:** *(date picker)*  
+- **Time of Accident:** *(time picker)*  
+- **Location of Accident:** *(text field with Google Maps integration optional)*  
+- **Description of Accident:** *(multi-line text area)*  
+- **Weather/Road Conditions:** *(dropdown)* → Clear | Rainy | Foggy | Dusty | Other  
+- **Police Report Number (OB No.):** *(text field, mandatory)*  
+- **Was the vehicle towed?** *(radio buttons)* → Yes | No  
+- **Tow Location / Garage:** *(text field, conditional if “Yes” selected)*  
+
+---
+
+### **Section D: Damage & Injuries**
+- **Damage to Insured Vehicle:** *(multi-line text area)*  
+- **Damage to Third-Party Property:** *(multi-line text area)*  
+- **Injuries to Driver/Passengers:** *(multi-line text area)*  
+- **Injuries to Third Parties:** *(multi-line text area)*  
+
+---
+
+### **Section E: Supporting Documents Upload**
+*(file upload fields, accept `.jpg`, `.jpeg`, `.png`, `.pdf` with preview thumbnails)*  
+- Accident Scene Photos (minimum 4 angles)  
+- Vehicle Damage Photos (front, sides, rear, interior)  
+- Police Abstract (PDF/Image)  
+- Driver’s License (Image/PDF)  
+- Logbook Copy (Image/PDF)  
+
+*(System should enforce mandatory uploads for police abstract + accident photos.)*
+
+---
+
+### **Section F: Witness Information**
+- **Witness Name:** *(text field, optional)*  
+- **Contact Number:** *(numeric input, optional)*  
+- **Statement:** *(multi-line text area, optional)*  
+
+---
+
+### **Section G: Declaration**
+☐ *I hereby declare that the information provided above is true and accurate to the best of my knowledge.*  
+
+- **Claimant Name:** *(auto-filled from insured record)*  
+- **Date Submitted:** *(auto-filled system date)*  
+- **Confirmation:** *(checkbox instead of signature)*  
+
+---
+
+## 🔑 Format Instructions Summary
+- **Policy Number:** Search + auto-fill from system (no manual entry).  
+- **Insured & Vehicle Details:** Auto-filled from policy record.  
+- **Accident Details:** Manual entry with date/time pickers, dropdowns, and conditional fields.  
+- **Uploads:** Mandatory for police abstract + accident photos; previews enabled.  
+- **Declaration:** Checkbox.  
+- **System Validation:** Ensure all required fields are completed before submission.  
+
+---
+

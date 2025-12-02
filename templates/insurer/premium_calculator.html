@@ -1,0 +1,366 @@
+{% extends "base.html" %}
+
+{% block title %}Premium Calculator - ClearView Insurance{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+	<!-- Header -->
+	<div class="row mb-4">
+		<div class="col-md-6">
+			<h2><i class="bi bi-calculator"></i> Premium Calculator</h2>
+			<p class="text-muted">Calculate insurance premiums for {{ current_user.company.name if current_user.company else 'your company' }}</p>
+		</div>
+		<div class="col-md-6 text-end">
+			<a href="{{ url_for('insurer_dashboard') }}" class="btn btn-outline-secondary">
+				<i class="bi bi-house"></i> Back to Dashboard
+			</a>
+		</div>
+	</div>
+
+	{% with messages = get_flashed_messages(with_categories=true) %}
+		{% if messages %}
+			{% for category, message in messages %}
+				<div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+					{{ message }}
+					<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+				</div>
+			{% endfor %}
+		{% endif %}
+	{% endwith %}
+
+	<div class="row">
+		<!-- Calculator Form -->
+		<div class="col-lg-6">
+			<div class="card shadow-sm">
+				<div class="card-header bg-primary text-white">
+					<h5 class="mb-0"><i class="bi bi-calculator-fill"></i> Calculate Premium</h5>
+				</div>
+				<div class="card-body">
+					<form method="POST" action="{{ url_for('premium_calculator') }}">
+						{{ form.hidden_tag() }}
+						
+						<!-- Cover Type -->
+						<div class="mb-3">
+							{{ form.cover_type.label(class="form-label") }}
+							{{ form.cover_type(class="form-select", id="cover_type") }}
+							{% if form.cover_type.errors %}
+								<div class="text-danger">{{ form.cover_type.errors[0] }}</div>
+							{% endif %}
+						</div>
+						
+						<!-- Vehicle Value -->
+						<div class="mb-3">
+							{{ form.vehicle_value.label(class="form-label") }}
+							<div class="input-group">
+								<span class="input-group-text">KES</span>
+								{{ form.vehicle_value(class="form-control", placeholder="e.g., 2000000") }}
+							</div>
+							{% if form.vehicle_value.errors %}
+								<div class="text-danger">{{ form.vehicle_value.errors[0] }}</div>
+							{% endif %}
+							<small class="text-muted">Enter the current market value of the vehicle</small>
+						</div>
+						
+						<!-- Use Category -->
+						<div class="mb-3">
+							{{ form.use_category.label(class="form-label") }}
+							{{ form.use_category(class="form-select", id="use_category") }}
+							{% if form.use_category.errors %}
+								<div class="text-danger">{{ form.use_category.errors[0] }}</div>
+							{% endif %}
+						</div>
+						
+						<!-- Optional Vehicle Details -->
+						<div class="card mb-3">
+							<div class="card-header bg-light">
+								<h6 class="mb-0">Optional Vehicle Details</h6>
+							</div>
+							<div class="card-body">
+								<div class="mb-3">
+									{{ form.registration_number.label(class="form-label") }}
+									{{ form.registration_number(class="form-control", placeholder="e.g., KAA 123B") }}
+								</div>
+								
+								<div class="mb-3">
+									{{ form.make_model.label(class="form-label") }}
+									{{ form.make_model(class="form-control", placeholder="e.g., Toyota Prado") }}
+								</div>
+								
+								<div class="mb-3">
+									{{ form.year_of_manufacture.label(class="form-label") }}
+									{{ form.year_of_manufacture(class="form-control", placeholder="e.g., 2020") }}
+								</div>
+							</div>
+						</div>
+						
+						<!-- Add-ons -->
+						<div class="card mb-3">
+							<div class="card-header bg-light">
+								<h6 class="mb-0">Optional Add-ons</h6>
+							</div>
+							<div class="card-body">
+								<div class="form-check mb-2">
+									{{ form.political_violence(class="form-check-input") }}
+									{{ form.political_violence.label(class="form-check-label") }}
+									<small class="text-muted d-block">~5% additional</small>
+								</div>
+								<div class="form-check mb-2">
+									{{ form.windscreen_cover(class="form-check-input") }}
+									{{ form.windscreen_cover.label(class="form-check-label") }}
+									<small class="text-muted d-block">~3% additional</small>
+								</div>
+								<div class="form-check mb-2">
+									{{ form.passenger_liability(class="form-check-input") }}
+									{{ form.passenger_liability.label(class="form-check-label") }}
+									<small class="text-muted d-block">~8% additional</small>
+								</div>
+								<div class="form-check mb-2">
+									{{ form.road_rescue(class="form-check-input") }}
+									{{ form.road_rescue.label(class="form-check-label") }}
+									<small class="text-muted d-block">~2% additional</small>
+								</div>
+							</div>
+						</div>
+						
+						<!-- Customer Information -->
+						<div class="card mb-3">
+							<div class="card-header bg-light">
+								<h6 class="mb-0">Customer Information (Optional - for quotes)</h6>
+							</div>
+							<div class="card-body">
+								<div class="mb-3">
+									{{ form.customer_email.label(class="form-label") }}
+									{{ form.customer_email(class="form-control", placeholder="customer@example.com") }}
+									{% if form.customer_email.errors %}
+										<div class="text-danger">{{ form.customer_email.errors[0] }}</div>
+									{% endif %}
+								</div>
+								
+								<div class="mb-3">
+									{{ form.customer_name.label(class="form-label") }}
+									{{ form.customer_name(class="form-control", placeholder="John Doe") }}
+								</div>
+								
+								<div class="mb-3">
+									{{ form.customer_phone.label(class="form-label") }}
+									{{ form.customer_phone(class="form-control", placeholder="+254 712 345 678") }}
+								</div>
+							</div>
+						</div>
+						
+						<div class="d-grid">
+							{{ form.submit(class="btn btn-primary btn-lg") }}
+						</div>
+					</form>
+				</div>
+			</div>
+		</div>
+		
+		<!-- Calculation Result -->
+		<div class="col-lg-6">
+			{% if result %}
+			<div class="card shadow-sm border-success">
+				<div class="card-header bg-success text-white">
+					<h5 class="mb-0"><i class="bi bi-check-circle"></i> Premium Calculation Result</h5>
+				</div>
+				<div class="card-body">
+					<!-- Summary -->
+					<div class="alert alert-success">
+						<h3 class="mb-0">KES {{ "{:,.2f}".format(result.final_premium) }}</h3>
+						<small>Annual Premium</small>
+					</div>
+					
+					<!-- Breakdown -->
+					<h6 class="mt-4">Calculation Breakdown</h6>
+					<table class="table table-sm">
+						<tr>
+							<td><strong>Cover Type:</strong></td>
+							<td>{{ result.cover_type }}</td>
+						</tr>
+						<tr>
+							<td><strong>Use Category:</strong></td>
+							<td>{{ result.use_category }}</td>
+						</tr>
+						{% if result.vehicle_value %}
+						<tr>
+							<td><strong>Vehicle Value:</strong></td>
+							<td>KES {{ "{:,.2f}".format(result.vehicle_value) }}</td>
+						</tr>
+						{% endif %}
+						<tr>
+							<td><strong>Calculation Method:</strong></td>
+							<td>{{ result.calculation_details.formula }}</td>
+						</tr>
+						<tr class="table-light">
+							<td><strong>Base Premium:</strong></td>
+							<td><strong>KES {{ "{:,.2f}".format(result.base_premium) }}</strong></td>
+						</tr>
+					</table>
+					
+					{% if result.addons %}
+					<h6 class="mt-3">Add-ons</h6>
+					<table class="table table-sm">
+						{% for addon in result.addons %}
+						<tr>
+							<td>{{ addon.name }}</td>
+							<td class="text-end">+KES {{ "{:,.2f}".format(addon.cost) }}</td>
+						</tr>
+						{% endfor %}
+						<tr class="table-light">
+							<td><strong>Total Add-ons:</strong></td>
+							<td class="text-end"><strong>KES {{ "{:,.2f}".format(result.addon_cost) }}</strong></td>
+						</tr>
+					</table>
+					{% endif %}
+					
+					<hr>
+					
+					<div class="alert alert-info">
+						<h4 class="mb-0">KES {{ "{:,.2f}".format(result.final_premium) }}</h4>
+						<small>Total Annual Premium</small>
+					</div>
+					
+					<!-- Vehicle Details -->
+					{% if result.registration_number or result.make_model %}
+					<h6 class="mt-3">Vehicle Details</h6>
+					<table class="table table-sm">
+						{% if result.registration_number %}
+						<tr>
+							<td><strong>Registration:</strong></td>
+							<td>{{ result.registration_number }}</td>
+						</tr>
+						{% endif %}
+						{% if result.make_model %}
+						<tr>
+							<td><strong>Make & Model:</strong></td>
+							<td>{{ result.make_model }}</td>
+						</tr>
+						{% endif %}
+						{% if result.year_of_manufacture %}
+						<tr>
+							<td><strong>Year:</strong></td>
+							<td>{{ result.year_of_manufacture }}</td>
+						</tr>
+						{% endif %}
+					</table>
+					{% endif %}
+					
+					<!-- Customer Details -->
+					{% if result.customer_email %}
+					<h6 class="mt-3">Customer Details</h6>
+					<table class="table table-sm">
+						<tr>
+							<td><strong>Email:</strong></td>
+							<td>{{ result.customer_email }}</td>
+						</tr>
+						{% if result.customer_name %}
+						<tr>
+							<td><strong>Name:</strong></td>
+							<td>{{ result.customer_name }}</td>
+						</tr>
+						{% endif %}
+						{% if result.customer_phone %}
+						<tr>
+							<td><strong>Phone:</strong></td>
+							<td>{{ result.customer_phone }}</td>
+						</tr>
+						{% endif %}
+					</table>
+					{% endif %}
+					
+					<!-- Action Buttons -->
+					<div class="d-grid gap-2 mt-4">
+						{% if result.customer_email %}
+						<form method="POST" action="{{ url_for('create_quote_from_calculator') }}">
+							<button type="submit" class="btn btn-success btn-lg w-100">
+								<i class="bi bi-file-earmark-text"></i> Create Quote & Send to Customer
+							</button>
+						</form>
+						{% else %}
+						<div class="alert alert-warning mb-2">
+							<i class="bi bi-info-circle"></i> Add customer email to create a quote
+						</div>
+						{% endif %}
+						
+						<form method="POST" action="{{ url_for('create_policy_from_calculator') }}">
+							<button type="submit" class="btn btn-primary btn-lg w-100">
+								<i class="bi bi-file-earmark-plus"></i> Create Policy from This Calculation
+							</button>
+						</form>
+						
+						<a href="{{ url_for('premium_calculator') }}" class="btn btn-outline-secondary btn-lg w-100">
+							<i class="bi bi-arrow-counterclockwise"></i> New Calculation
+						</a>
+						
+						<a href="{{ url_for('insurer_dashboard') }}" class="btn btn-outline-secondary">
+							<i class="bi bi-house"></i> Back to Dashboard
+						</a>
+					</div>
+				</div>
+			</div>
+			{% else %}
+			<div class="card shadow-sm">
+				<div class="card-body text-center py-5">
+					<i class="bi bi-calculator text-muted" style="font-size: 5rem;"></i>
+					<h5 class="mt-3 text-muted">No Calculation Yet</h5>
+					<p class="text-muted">Fill in the form and click "Calculate Premium" to see results</p>
+				</div>
+			</div>
+			{% endif %}
+		</div>
+	</div>
+</div>
+
+<script>
+// Show/hide fields based on cover type
+document.addEventListener('DOMContentLoaded', function() {
+	const coverTypeSelect = document.getElementById('cover_type');
+	const useCategorySelect = document.getElementById('use_category');
+	
+	function updateUseCategoryOptions() {
+		const coverType = coverTypeSelect.value;
+		const currentValue = useCategorySelect.value;
+		
+		// Clear and rebuild options
+		useCategorySelect.innerHTML = '';
+		
+		if (coverType === 'PSV') {
+			// Show only PSV options
+			const psvOptions = [
+				{value: 'PSV - Taxi', text: 'PSV - Taxi'},
+				{value: 'PSV - Matatu (14-seater)', text: 'PSV - Matatu (14-seater)'},
+				{value: 'PSV - Matatu (25-seater)', text: 'PSV - Matatu (25-seater)'},
+				{value: 'PSV - Bus (40+ seater)', text: 'PSV - Bus (40+ seater)'}
+			];
+			psvOptions.forEach(opt => {
+				const option = document.createElement('option');
+				option.value = opt.value;
+				option.text = opt.text;
+				useCategorySelect.add(option);
+			});
+		} else {
+			// Show regular options
+			const regularOptions = [
+				{value: 'Private', text: 'Private'},
+				{value: 'Commercial', text: 'Commercial'}
+			];
+			regularOptions.forEach(opt => {
+				const option = document.createElement('option');
+				option.value = opt.value;
+				option.text = opt.text;
+				useCategorySelect.add(option);
+			});
+		}
+		
+		// Restore previous selection if possible
+		if (Array.from(useCategorySelect.options).some(opt => opt.value === currentValue)) {
+			useCategorySelect.value = currentValue;
+		}
+	}
+	
+	coverTypeSelect.addEventListener('change', updateUseCategoryOptions);
+	updateUseCategoryOptions(); // Initialize on load
+});
+</script>
+
+{% endblock %}

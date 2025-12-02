@@ -1,0 +1,610 @@
+{% extends "base.html" %}
+
+{% block title %}Claim {{ claim.claim_number }} - ClearView Insurance{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+	<!-- Header -->
+	<div class="row mb-4">
+		<div class="col-md-6">
+			<h2><i class="bi bi-file-earmark-medical"></i> Claim Details</h2>
+			<p class="text-muted">Claim Number: <strong>{{ claim.claim_number }}</strong></p>
+		</div>
+		<div class="col-md-6 text-end">
+			<a href="{{ url_for('manage_claims') }}" class="btn btn-outline-secondary">
+				<i class="bi bi-arrow-left"></i> Back to Claims
+			</a>
+		</div>
+	</div>
+
+	<!-- Status Alert -->
+	<div class="row mb-4">
+		<div class="col-12">
+			{% if claim.status == 'Pending' %}
+				<div class="alert alert-warning">
+					<i class="bi bi-clock-history"></i> <strong>Status: Pending</strong> - This claim is awaiting review.
+				</div>
+			{% elif claim.status == 'Under Review' %}
+				<div class="alert alert-info">
+					<i class="bi bi-search"></i> <strong>Status: Under Review</strong> - This claim is currently being reviewed.
+				</div>
+			{% elif claim.status == 'Approved' %}
+				<div class="alert alert-success">
+					<i class="bi bi-check-circle"></i> <strong>Status: Approved</strong> - This claim has been approved.
+				</div>
+			{% elif claim.status == 'Rejected' %}
+				<div class="alert alert-danger">
+					<i class="bi bi-x-circle"></i> <strong>Status: Rejected</strong> - This claim has been rejected.
+				</div>
+			{% endif %}
+		</div>
+	</div>
+
+	<!-- Section A: Policy Information -->
+	<div class="card mb-4">
+		<div class="card-header bg-primary text-white">
+			<h5 class="mb-0"><i class="bi bi-file-text"></i> Section A: Policy Information</h5>
+		</div>
+		<div class="card-body">
+			<div class="row">
+				<div class="col-md-4 mb-3">
+					<label class="text-muted">Policy Number</label>
+					<p class="fw-bold">
+						<a href="{{ url_for('view_policy', policy_id=policy.id) }}">{{ policy.policy_number }}</a>
+					</p>
+				</div>
+				<div class="col-md-4 mb-3">
+					<label class="text-muted">Policy Type</label>
+					<p class="fw-bold">{{ policy.policy_type }}</p>
+				</div>
+				<div class="col-md-4 mb-3">
+					<label class="text-muted">Insurance Company</label>
+					<p class="fw-bold">{{ claim.insurance_company.name }}</p>
+				</div>
+			</div>
+			<div class="row">
+				<div class="col-md-6 mb-3">
+					<label class="text-muted">Insured Name</label>
+					<p class="fw-bold">{{ policy.insured_name }}</p>
+				</div>
+				<div class="col-md-3 mb-3">
+					<label class="text-muted">National ID</label>
+					<p class="fw-bold">{{ policy.national_id }}</p>
+				</div>
+				<div class="col-md-3 mb-3">
+					<label class="text-muted">Phone Number</label>
+					<p class="fw-bold">{{ policy.phone_number }}</p>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Section B: Vehicle Details -->
+	<div class="card mb-4">
+		<div class="card-header bg-secondary text-white">
+			<h5 class="mb-0"><i class="bi bi-car-front"></i> Section B: Vehicle Details</h5>
+		</div>
+		<div class="card-body">
+			<div class="row">
+				<div class="col-md-4 mb-3">
+					<label class="text-muted">Registration Number</label>
+					<p class="fw-bold">{{ policy.registration_number }}</p>
+				</div>
+				<div class="col-md-4 mb-3">
+					<label class="text-muted">Make & Model</label>
+					<p class="fw-bold">{{ policy.make_model }}</p>
+				</div>
+				<div class="col-md-4 mb-3">
+					<label class="text-muted">Year of Manufacture</label>
+					<p class="fw-bold">{{ policy.year_of_manufacture }}</p>
+				</div>
+			</div>
+			<div class="row">
+				<div class="col-md-6 mb-3">
+					<label class="text-muted">Chassis Number</label>
+					<p class="fw-bold">{{ policy.chassis_number }}</p>
+				</div>
+				<div class="col-md-6 mb-3">
+					<label class="text-muted">Engine Number</label>
+					<p class="fw-bold">{{ policy.engine_number }}</p>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Section C: Accident Details -->
+	<div class="card mb-4">
+		<div class="card-header bg-danger text-white">
+			<h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Section C: Accident Details</h5>
+		</div>
+		<div class="card-body">
+			<div class="row">
+				<div class="col-md-3 mb-3">
+					<label class="text-muted">Date of Accident</label>
+					<p class="fw-bold">{{ claim.accident_date.strftime('%d %B %Y') }}</p>
+				</div>
+				<div class="col-md-3 mb-3">
+					<label class="text-muted">Time of Accident</label>
+					<p class="fw-bold">{{ claim.accident_time.strftime('%H:%M') }}</p>
+				</div>
+				<div class="col-md-3 mb-3">
+					<label class="text-muted">Weather Conditions</label>
+					<p class="fw-bold">{{ claim.weather_conditions }}</p>
+				</div>
+				<div class="col-md-3 mb-3">
+					<label class="text-muted">Vehicle Towed</label>
+					<p class="fw-bold">{{ 'Yes' if claim.vehicle_towed else 'No' }}</p>
+				</div>
+			</div>
+			<div class="row">
+				<div class="col-md-6 mb-3">
+					<label class="text-muted">Location of Accident</label>
+					<p class="fw-bold">{{ claim.accident_location }}</p>
+				</div>
+				<div class="col-md-6 mb-3">
+					<label class="text-muted">Police Report Number</label>
+					<p class="fw-bold">{{ claim.police_report_number }}</p>
+				</div>
+			</div>
+			{% if claim.tow_location %}
+			<div class="row">
+				<div class="col-md-12 mb-3">
+					<label class="text-muted">Tow Location / Garage</label>
+					<p class="fw-bold">{{ claim.tow_location }}</p>
+				</div>
+			</div>
+			{% endif %}
+			<div class="row">
+				<div class="col-md-12">
+					<label class="text-muted">Accident Description</label>
+					<p>{{ claim.accident_description }}</p>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Section D: Damage & Injuries -->
+	<div class="card mb-4">
+		<div class="card-header bg-warning text-dark">
+			<h5 class="mb-0"><i class="bi bi-bandaid"></i> Section D: Damage & Injuries</h5>
+		</div>
+		<div class="card-body">
+			<div class="row">
+				<div class="col-md-6 mb-3">
+					<label class="text-muted">Damage to Insured Vehicle</label>
+					<p>{{ claim.damage_insured_vehicle }}</p>
+				</div>
+				<div class="col-md-6 mb-3">
+					<label class="text-muted">Damage to Third-Party Property</label>
+					<p>{{ claim.damage_third_party if claim.damage_third_party else 'None reported' }}</p>
+				</div>
+			</div>
+			<div class="row">
+				<div class="col-md-6 mb-3">
+					<label class="text-muted">Injuries to Driver/Passengers</label>
+					<p>{{ claim.injuries_driver_passengers if claim.injuries_driver_passengers else 'None reported' }}</p>
+				</div>
+				<div class="col-md-6 mb-3">
+					<label class="text-muted">Injuries to Third Parties</label>
+					<p>{{ claim.injuries_third_parties if claim.injuries_third_parties else 'None reported' }}</p>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Section E: Supporting Documents -->
+	<div class="card mb-4">
+		<div class="card-header bg-info text-white">
+			<h5 class="mb-0"><i class="bi bi-images"></i> Section E: Supporting Documents</h5>
+		</div>
+		<div class="card-body">
+			<!-- Accident Scene Photos -->
+			{% if accident_photos %}
+			<h6 class="mb-3">Accident Scene Photos</h6>
+			<div class="row mb-4">
+				{% for doc in accident_photos %}
+				<div class="col-md-3 mb-3">
+					<div class="card">
+						<img src="{{ url_for('uploaded_file', filename=doc.file_path) }}" 
+							 class="card-img-top" 
+							 style="height: 200px; object-fit: cover; cursor: pointer;"
+							 data-bs-toggle="modal" 
+							 data-bs-target="#photoModal{{ doc.id }}">
+						<div class="card-body p-2">
+							<small class="text-muted">{{ doc.document_type.replace('_', ' ').title() }}</small>
+						</div>
+					</div>
+				</div>
+				
+				<!-- Modal for full-size image -->
+				<div class="modal fade" id="photoModal{{ doc.id }}" tabindex="-1">
+					<div class="modal-dialog modal-lg modal-dialog-centered">
+						<div class="modal-content">
+							<div class="modal-header">
+								<h5 class="modal-title">{{ doc.document_type.replace('_', ' ').title() }}</h5>
+								<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+							</div>
+							<div class="modal-body text-center">
+								<img src="{{ url_for('uploaded_file', filename=doc.file_path) }}" class="img-fluid">
+							</div>
+						</div>
+					</div>
+				</div>
+				{% endfor %}
+			</div>
+			{% endif %}
+
+			<!-- Damage Photos -->
+			{% if damage_photos %}
+			<h6 class="mb-3">Vehicle Damage Photos</h6>
+			<div class="row mb-4">
+				{% for doc in damage_photos %}
+				<div class="col-md-3 mb-3">
+					<div class="card">
+						<img src="{{ url_for('uploaded_file', filename=doc.file_path) }}" 
+							 class="card-img-top" 
+							 style="height: 200px; object-fit: cover; cursor: pointer;"
+							 data-bs-toggle="modal" 
+							 data-bs-target="#photoModal{{ doc.id }}">
+						<div class="card-body p-2">
+							<small class="text-muted">{{ doc.document_type.replace('_', ' ').title() }}</small>
+						</div>
+					</div>
+				</div>
+				
+				<!-- Modal -->
+				<div class="modal fade" id="photoModal{{ doc.id }}" tabindex="-1">
+					<div class="modal-dialog modal-lg modal-dialog-centered">
+						<div class="modal-content">
+							<div class="modal-header">
+								<h5 class="modal-title">{{ doc.document_type.replace('_', ' ').title() }}</h5>
+								<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+							</div>
+							<div class="modal-body text-center">
+								<img src="{{ url_for('uploaded_file', filename=doc.file_path) }}" class="img-fluid">
+							</div>
+						</div>
+					</div>
+				</div>
+				{% endfor %}
+			</div>
+			{% endif %}
+
+			<!-- Official Documents -->
+			<h6 class="mb-3">Official Documents</h6>
+			<div class="row">
+				{% if police_docs %}
+				<div class="col-md-4 mb-3">
+					<label class="text-muted">Police Abstract</label>
+					<div class="list-group">
+						{% for doc in police_docs %}
+						<a href="{{ url_for('uploaded_file', filename=doc.file_path) }}" target="_blank" class="list-group-item list-group-item-action">
+							<i class="bi bi-file-earmark-pdf"></i> View Document
+						</a>
+						{% endfor %}
+					</div>
+				</div>
+				{% endif %}
+
+				{% if license_docs %}
+				<div class="col-md-4 mb-3">
+					<label class="text-muted">Driver's License</label>
+					<div class="list-group">
+						{% for doc in license_docs %}
+						<a href="{{ url_for('uploaded_file', filename=doc.file_path) }}" target="_blank" class="list-group-item list-group-item-action">
+							<i class="bi bi-file-earmark-image"></i> View Document
+						</a>
+						{% endfor %}
+					</div>
+				</div>
+				{% endif %}
+
+				{% if logbook_docs %}
+				<div class="col-md-4 mb-3">
+					<label class="text-muted">Logbook</label>
+					<div class="list-group">
+						{% for doc in logbook_docs %}
+						<a href="{{ url_for('uploaded_file', filename=doc.file_path) }}" target="_blank" class="list-group-item list-group-item-action">
+							<i class="bi bi-file-earmark-image"></i> View Document
+						</a>
+						{% endfor %}
+					</div>
+				</div>
+				{% endif %}
+			</div>
+
+			{% if not accident_photos and not damage_photos and not police_docs and not license_docs and not logbook_docs %}
+			<div class="text-center py-3">
+				<i class="bi bi-file-earmark-x text-muted" style="font-size: 3rem;"></i>
+				<p class="text-muted mt-2">No supporting documents uploaded.</p>
+			</div>
+			{% endif %}
+		</div>
+	</div>
+
+	<!-- Section F: Witness Information -->
+	{% if claim.witness_name or claim.witness_contact or claim.witness_statement %}
+	<div class="card mb-4">
+		<div class="card-header bg-secondary text-white">
+			<h5 class="mb-0"><i class="bi bi-person"></i> Section F: Witness Information</h5>
+		</div>
+		<div class="card-body">
+			<div class="row">
+				<div class="col-md-4 mb-3">
+					<label class="text-muted">Witness Name</label>
+					<p class="fw-bold">{{ claim.witness_name if claim.witness_name else 'N/A' }}</p>
+				</div>
+				<div class="col-md-4 mb-3">
+					<label class="text-muted">Contact Number</label>
+					<p class="fw-bold">{{ claim.witness_contact if claim.witness_contact else 'N/A' }}</p>
+				</div>
+				<div class="col-md-4 mb-3">
+					<label class="text-muted">Statement</label>
+					<p>{{ claim.witness_statement if claim.witness_statement else 'N/A' }}</p>
+				</div>
+			</div>
+		</div>
+	</div>
+	{% endif %}
+
+	<!-- Claim Metadata -->
+	<div class="card mb-4">
+		<div class="card-header bg-light">
+			<h5 class="mb-0"><i class="bi bi-info-circle"></i> Claim Information</h5>
+		</div>
+		<div class="card-body">
+			<div class="row">
+				<div class="col-md-4 mb-3">
+					<label class="text-muted">Submitted By</label>
+					<p class="fw-bold">{{ creator.username if creator else 'Unknown' }}</p>
+				</div>
+				<div class="col-md-4 mb-3">
+					<label class="text-muted">Date Submitted</label>
+					<p class="fw-bold">{{ claim.date_submitted.strftime('%d %B %Y at %H:%M') }}</p>
+				</div>
+				<div class="col-md-4 mb-3">
+					<label class="text-muted">Last Updated</label>
+					<p class="fw-bold">{{ claim.last_updated.strftime('%d %B %Y at %H:%M') if claim.last_updated else 'N/A' }}</p>
+				</div>
+			</div>
+			
+			{% if claim.status != 'Pending' %}
+			<hr>
+			<div class="row">
+				{% if claim.reviewed_by %}
+				<div class="col-md-6 mb-3">
+					<label class="text-muted">Reviewed By</label>
+					<p class="fw-bold">{{ claim.reviewer.username if claim.reviewer else 'Unknown' }}</p>
+					<small class="text-muted">{{ claim.review_date.strftime('%d %B %Y at %H:%M') if claim.review_date else '' }}</small>
+					{% if claim.review_notes %}
+					<p class="mt-2"><strong>Review Notes:</strong> {{ claim.review_notes }}</p>
+					{% endif %}
+				</div>
+				{% endif %}
+				
+				{% if claim.fraud_check_performed %}
+				<div class="col-md-6 mb-3">
+					<label class="text-muted">Fraud Check</label>
+					<p>
+						<span class="badge {% if claim.fraud_risk_score < 20 %}bg-success{% elif claim.fraud_risk_score < 50 %}bg-warning{% else %}bg-danger{% endif %}">
+							Risk Score: {{ claim.fraud_risk_score|round(2) }}%
+						</span>
+					</p>
+					<small class="text-muted">Performed on {{ claim.fraud_check_date.strftime('%d %B %Y at %H:%M') if claim.fraud_check_date else 'N/A' }}</small>
+				</div>
+				{% endif %}
+			</div>
+			{% endif %}
+			
+			{% if claim.status in ['Approved', 'Rejected'] and claim.approved_by %}
+			<hr>
+			<div class="row">
+				<div class="col-md-6 mb-3">
+					<label class="text-muted">{{ 'Approved' if claim.status == 'Approved' else 'Rejected' }} By</label>
+					<p class="fw-bold">{{ claim.approver.username if claim.approver else 'Unknown' }}</p>
+					<small class="text-muted">{{ claim.approval_date.strftime('%d %B %Y at %H:%M') if claim.approval_date else '' }}</small>
+				</div>
+				{% if claim.rejection_reason %}
+				<div class="col-md-6 mb-3">
+					<label class="text-muted">Rejection Reason</label>
+					<p class="text-danger">{{ claim.rejection_reason }}</p>
+				</div>
+				{% endif %}
+			</div>
+			{% endif %}
+		</div>
+	</div>
+	
+	<!-- Action Buttons -->
+	{% if claim.status == 'Pending' %}
+	<div class="card mb-4 border-primary">
+		<div class="card-header bg-primary text-white">
+			<h5 class="mb-0"><i class="bi bi-gear"></i> Actions</h5>
+		</div>
+		<div class="card-body text-center">
+			<a href="{{ url_for('review_claim', claim_id=claim.id) }}" class="btn btn-info btn-lg">
+				<i class="bi bi-search"></i> Start Review
+			</a>
+			<p class="mt-3 text-muted">Click to review this claim and verify all submitted information.</p>
+		</div>
+	</div>
+	{% elif claim.status == 'Under Review' %}
+	<div class="card mb-4 border-info">
+		<div class="card-header bg-info text-white">
+			<h5 class="mb-0"><i class="bi bi-gear"></i> Review Actions</h5>
+		</div>
+		<div class="card-body">
+			<!-- Fraud Check Section -->
+			<div class="row mb-4">
+				<div class="col-12">
+					<h6><i class="bi bi-shield-exclamation"></i> Fraud Detection</h6>
+					{% if not claim.fraud_check_performed %}
+					<p class="text-muted">Run automated fraud detection checks before approving this claim.</p>
+					<button type="button" class="btn btn-warning" id="fraudCheckBtn">
+						<i class="bi bi-shield-check"></i> Run Fraud Check
+					</button>
+					<div id="fraudCheckResult" class="mt-3" style="display: none;">
+						<div class="alert alert-info">
+							<div class="d-flex align-items-center">
+								<div class="spinner-border text-primary me-3" role="status">
+									<span class="visually-hidden">Loading...</span>
+								</div>
+								<div>Running fraud detection checks...</div>
+							</div>
+						</div>
+					</div>
+					{% else %}
+					<div class="alert {% if claim.fraud_risk_score < 20 %}alert-success{% elif claim.fraud_risk_score < 50 %}alert-warning{% else %}alert-danger{% endif %}">
+						<h6>Fraud Check Results</h6>
+						<p><strong>Risk Score:</strong> {{ claim.fraud_risk_score|round(2) }}%</p>
+						<pre style="white-space: pre-wrap;">{{ claim.fraud_check_result }}</pre>
+						<small class="text-muted">Checked on {{ claim.fraud_check_date.strftime('%d %B %Y at %H:%M') }}</small>
+					</div>
+					{% endif %}
+				</div>
+			</div>
+			
+			<hr>
+			
+			<!-- Approve/Reject Actions -->
+			<div class="row">
+				<div class="col-12">
+					<h6><i class="bi bi-check-circle"></i> Final Decision</h6>
+					{% if not claim.fraud_check_performed %}
+					<p class="text-warning"><i class="bi bi-exclamation-triangle"></i> Please run fraud check before making a decision.</p>
+					{% else %}
+					<div class="d-flex gap-2 justify-content-center">
+						<button type="button" class="btn btn-success btn-lg" data-bs-toggle="modal" data-bs-target="#approveModal">
+							<i class="bi bi-check-circle"></i> Approve Claim
+						</button>
+						<button type="button" class="btn btn-danger btn-lg" data-bs-toggle="modal" data-bs-target="#rejectModal">
+							<i class="bi bi-x-circle"></i> Reject Claim
+						</button>
+					</div>
+					{% endif %}
+				</div>
+			</div>
+		</div>
+	</div>
+	{% endif %}
+</div>
+
+<!-- Approve Modal -->
+<div class="modal fade" id="approveModal" tabindex="-1" aria-labelledby="approveModalLabel" aria-hidden="true">
+	<div class="modal-dialog modal-dialog-centered">
+		<div class="modal-content">
+			<div class="modal-header bg-success text-white">
+				<h5 class="modal-title" id="approveModalLabel">
+					<i class="bi bi-check-circle"></i> Approve Claim
+				</h5>
+				<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
+			<form method="POST" action="{{ url_for('approve_claim', claim_id=claim.id) }}">
+				<div class="modal-body">
+					<div class="alert alert-success">
+						<i class="bi bi-info-circle"></i> 
+						<strong>Confirm:</strong> You are about to approve claim <strong>{{ claim.claim_number }}</strong>.
+						This action will mark the claim as approved and the claimant will be notified.
+					</div>
+					<p>Are you sure you want to approve this claim?</p>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+						<i class="bi bi-x"></i> Cancel
+					</button>
+					<button type="submit" class="btn btn-success">
+						<i class="bi bi-check-circle"></i> Approve Claim
+					</button>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+
+<!-- Reject Modal -->
+<div class="modal fade" id="rejectModal" tabindex="-1" aria-labelledby="rejectModalLabel" aria-hidden="true">
+	<div class="modal-dialog modal-dialog-centered">
+		<div class="modal-content">
+			<div class="modal-header bg-danger text-white">
+				<h5 class="modal-title" id="rejectModalLabel">
+					<i class="bi bi-x-circle"></i> Reject Claim
+				</h5>
+				<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
+			<form method="POST" action="{{ url_for('reject_claim', claim_id=claim.id) }}">
+				<div class="modal-body">
+					<div class="alert alert-warning">
+						<i class="bi bi-exclamation-triangle"></i> 
+						<strong>Warning:</strong> You are about to reject claim <strong>{{ claim.claim_number }}</strong>.
+					</div>
+					
+					<div class="mb-3">
+						<label for="rejection_reason" class="form-label">
+							<strong>Reason for Rejection <span class="text-danger">*</span></strong>
+						</label>
+						<textarea class="form-control" id="rejection_reason" name="rejection_reason" 
+								  rows="4" required 
+								  placeholder="Please provide a detailed reason for rejecting this claim..."></textarea>
+						<small class="text-muted">This reason will be shown to the claimant.</small>
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+						<i class="bi bi-x"></i> Cancel
+					</button>
+					<button type="submit" class="btn btn-danger">
+						<i class="bi bi-x-circle"></i> Reject Claim
+					</button>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+
+<script>
+// Fraud Check AJAX
+document.addEventListener('DOMContentLoaded', function() {
+	const fraudCheckBtn = document.getElementById('fraudCheckBtn');
+	const fraudCheckResult = document.getElementById('fraudCheckResult');
+	
+	if (fraudCheckBtn) {
+		fraudCheckBtn.addEventListener('click', function() {
+			// Disable button and show loading
+			fraudCheckBtn.disabled = true;
+			fraudCheckResult.style.display = 'block';
+			
+			// Make AJAX request
+			fetch("{{ url_for('fraud_check_claim', claim_id=claim.id) }}", {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				}
+			})
+			.then(response => response.json())
+			.then(data => {
+				if (data.success) {
+					// Reload page to show results
+					location.reload();
+				} else {
+					fraudCheckResult.innerHTML = `
+						<div class="alert alert-danger">
+							<i class="bi bi-exclamation-triangle"></i> Error: ${data.error}
+						</div>
+					`;
+					fraudCheckBtn.disabled = false;
+				}
+			})
+			.catch(error => {
+				fraudCheckResult.innerHTML = `
+					<div class="alert alert-danger">
+						<i class="bi bi-exclamation-triangle"></i> Error performing fraud check. Please try again.
+					</div>
+				`;
+				fraudCheckBtn.disabled = false;
+			});
+		});
+	}
+});
+</script>
+
+{% endblock %}
