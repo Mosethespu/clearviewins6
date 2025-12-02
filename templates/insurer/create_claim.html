@@ -1,0 +1,480 @@
+{% extends "base.html" %}
+
+{% block title %}File New Claim - ClearView Insurance{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+	<!-- Header -->
+	<div class="row mb-4">
+		<div class="col-md-6">
+			<h2><i class="bi bi-file-earmark-medical"></i> File Insurance Claim</h2>
+			<p class="text-muted">Motor Insurance Accident Claim Form</p>
+		</div>
+		<div class="col-md-6 text-end">
+			<a href="{{ url_for('manage_claims') }}" class="btn btn-outline-secondary">
+				<i class="bi bi-arrow-left"></i> Back to Claims
+			</a>
+		</div>
+	</div>
+
+	<form method="POST" action="{{ url_for('create_claim') }}" enctype="multipart/form-data" id="claimForm">
+		{{ form.hidden_tag() }}
+		
+		<!-- Section A: Policy Information -->
+		<div class="card mb-4">
+			<div class="card-header bg-primary text-white">
+				<h5 class="mb-0"><i class="bi bi-file-text"></i> Section A: Policy Information</h5>
+			</div>
+			<div class="card-body">
+				<div class="alert alert-info">
+					<i class="bi bi-info-circle"></i> Search for a policy by registration number or insured name. Policy details will auto-fill.
+				</div>
+				
+				<div class="row">
+					<div class="col-md-6 mb-3">
+						<label for="policySearch" class="form-label">Search Policy <span class="text-danger">*</span></label>
+						<input type="text" class="form-control" id="policySearch" 
+							   placeholder="Type registration number or insured name..." autocomplete="off">
+						<div id="policyResults" class="list-group mt-2" style="display: none; position: absolute; z-index: 1000; max-height: 300px; overflow-y: auto; width: calc(100% - 30px);"></div>
+					</div>
+				</div>
+
+				<div id="policyDetails" style="display: none;">
+					<input type="hidden" name="policy_id" id="policy_id" value="">
+					<div class="row">
+						<div class="col-md-4 mb-3">
+							<label class="form-label">Policy Number</label>
+							<input type="text" class="form-control" id="policy_number" readonly>
+						</div>
+						<div class="col-md-4 mb-3">
+							<label class="form-label">Policy Type</label>
+							<input type="text" class="form-control" id="policy_type" readonly>
+						</div>
+						<div class="col-md-4 mb-3">
+							<label class="form-label">Insurance Company</label>
+							<input type="text" class="form-control" value="{{ current_user.company.name }}" readonly>
+						</div>
+					</div>
+					<div class="row">
+						<div class="col-md-6 mb-3">
+							<label class="form-label">Insured Name</label>
+							<input type="text" class="form-control" id="insured_name" readonly>
+						</div>
+						<div class="col-md-3 mb-3">
+							<label class="form-label">National ID</label>
+							<input type="text" class="form-control" id="national_id" readonly>
+						</div>
+						<div class="col-md-3 mb-3">
+							<label class="form-label">Phone Number</label>
+							<input type="text" class="form-control" id="phone_number" readonly>
+						</div>
+					</div>
+					<div class="row">
+						<div class="col-md-4 mb-3">
+							<label class="form-label">Registration Number</label>
+							<input type="text" class="form-control" id="registration_number" readonly>
+						</div>
+						<div class="col-md-4 mb-3">
+							<label class="form-label">Make & Model</label>
+							<input type="text" class="form-control" id="make_model" readonly>
+						</div>
+						<div class="col-md-4 mb-3">
+							<label class="form-label">Year of Manufacture</label>
+							<input type="text" class="form-control" id="year_of_manufacture" readonly>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Section C: Accident Details -->
+		<div class="card mb-4">
+			<div class="card-header bg-danger text-white">
+				<h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Section C: Accident Details</h5>
+			</div>
+			<div class="card-body">
+				<div class="row">
+					<div class="col-md-4 mb-3">
+						{{ form.accident_date.label(class="form-label") }}
+						<span class="text-danger">*</span>
+						{{ form.accident_date(class="form-control") }}
+					</div>
+					<div class="col-md-4 mb-3">
+						{{ form.accident_time.label(class="form-label") }}
+						<span class="text-danger">*</span>
+						{{ form.accident_time(class="form-control") }}
+					</div>
+					<div class="col-md-4 mb-3">
+						{{ form.weather_conditions.label(class="form-label") }}
+						<span class="text-danger">*</span>
+						{{ form.weather_conditions(class="form-select") }}
+					</div>
+				</div>
+				<div class="row">
+					<div class="col-md-12 mb-3">
+						{{ form.accident_location.label(class="form-label") }}
+						<span class="text-danger">*</span>
+						{{ form.accident_location(class="form-control", placeholder="e.g., Nairobi-Mombasa Highway, near Total Petrol Station") }}
+					</div>
+				</div>
+				<div class="row">
+					<div class="col-md-12 mb-3">
+						{{ form.accident_description.label(class="form-label") }}
+						<span class="text-danger">*</span>
+						{{ form.accident_description(class="form-control", rows=4, placeholder="Describe what happened, how the accident occurred, and any other relevant details...") }}
+					</div>
+				</div>
+				<div class="row">
+					<div class="col-md-6 mb-3">
+						{{ form.police_report_number.label(class="form-label") }}
+						<span class="text-danger">*</span>
+						{{ form.police_report_number(class="form-control", placeholder="e.g., OB/123/2024") }}
+					</div>
+					<div class="col-md-3 mb-3">
+						{{ form.vehicle_towed.label(class="form-label") }}
+						<span class="text-danger">*</span>
+						{{ form.vehicle_towed(class="form-select", onchange="toggleTowLocation()") }}
+					</div>
+					<div class="col-md-3 mb-3" id="towLocationDiv" style="display: none;">
+						{{ form.tow_location.label(class="form-label") }}
+						{{ form.tow_location(class="form-control", placeholder="Garage name/location") }}
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Section D: Damage & Injuries -->
+		<div class="card mb-4">
+			<div class="card-header bg-warning text-dark">
+				<h5 class="mb-0"><i class="bi bi-bandaid"></i> Section D: Damage & Injuries</h5>
+			</div>
+			<div class="card-body">
+				<div class="row">
+					<div class="col-md-6 mb-3">
+						{{ form.damage_insured_vehicle.label(class="form-label") }}
+						<span class="text-danger">*</span>
+						{{ form.damage_insured_vehicle(class="form-control", rows=4, placeholder="Describe all damage to your vehicle...") }}
+					</div>
+					<div class="col-md-6 mb-3">
+						{{ form.damage_third_party.label(class="form-label") }}
+						{{ form.damage_third_party(class="form-control", rows=4, placeholder="Describe any damage to other vehicles/property (if applicable)...") }}
+					</div>
+				</div>
+				<div class="row">
+					<div class="col-md-6 mb-3">
+						{{ form.injuries_driver_passengers.label(class="form-label") }}
+						{{ form.injuries_driver_passengers(class="form-control", rows=4, placeholder="Describe any injuries to driver/passengers (if applicable)...") }}
+					</div>
+					<div class="col-md-6 mb-3">
+						{{ form.injuries_third_parties.label(class="form-label") }}
+						{{ form.injuries_third_parties(class="form-control", rows=4, placeholder="Describe any injuries to third parties (if applicable)...") }}
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Section E: Supporting Documents -->
+		<div class="card mb-4">
+			<div class="card-header bg-info text-white">
+				<h5 class="mb-0"><i class="bi bi-file-earmark-arrow-up"></i> Section E: Supporting Documents Upload</h5>
+			</div>
+			<div class="card-body">
+				<div class="alert alert-warning">
+					<i class="bi bi-exclamation-circle"></i> <strong>Required Documents:</strong> At least 4 accident scene photos and police abstract are mandatory.
+				</div>
+
+				<!-- Accident Scene Photos -->
+				<h6 class="mb-3">Accident Scene Photos (minimum 4 angles)</h6>
+				<div class="row mb-4">
+					<div class="col-md-3">
+						<label class="form-label">Accident Photo 1</label>
+						<input type="file" class="form-control" name="accident_photo_1" accept="image/*">
+					</div>
+					<div class="col-md-3">
+						<label class="form-label">Accident Photo 2</label>
+						<input type="file" class="form-control" name="accident_photo_2" accept="image/*">
+					</div>
+					<div class="col-md-3">
+						<label class="form-label">Accident Photo 3</label>
+						<input type="file" class="form-control" name="accident_photo_3" accept="image/*">
+					</div>
+					<div class="col-md-3">
+						<label class="form-label">Accident Photo 4</label>
+						<input type="file" class="form-control" name="accident_photo_4" accept="image/*">
+					</div>
+				</div>
+
+				<!-- Vehicle Damage Photos -->
+				<h6 class="mb-3">Vehicle Damage Photos</h6>
+				<div class="row mb-4">
+					<div class="col-md-3">
+						<label class="form-label">Front Damage</label>
+						<input type="file" class="form-control" name="damage_photo_front" accept="image/*">
+					</div>
+					<div class="col-md-3">
+						<label class="form-label">Side Damage</label>
+						<input type="file" class="form-control" name="damage_photo_side" accept="image/*">
+					</div>
+					<div class="col-md-3">
+						<label class="form-label">Rear Damage</label>
+						<input type="file" class="form-control" name="damage_photo_rear" accept="image/*">
+					</div>
+					<div class="col-md-3">
+						<label class="form-label">Interior Damage</label>
+						<input type="file" class="form-control" name="damage_photo_interior" accept="image/*">
+					</div>
+				</div>
+
+				<!-- Official Documents -->
+				<h6 class="mb-3">Official Documents <span class="text-danger">*</span></h6>
+				<div class="row">
+					<div class="col-md-4 mb-3">
+						<label class="form-label">Police Abstract (PDF/Image)</label>
+						<input type="file" class="form-control" name="police_abstract" accept="image/*,.pdf" required>
+					</div>
+					<div class="col-md-4 mb-3">
+						<label class="form-label">Driver's License</label>
+						<input type="file" class="form-control" name="driver_license" accept="image/*,.pdf">
+					</div>
+					<div class="col-md-4 mb-3">
+						<label class="form-label">Logbook Copy</label>
+						<input type="file" class="form-control" name="logbook" accept="image/*,.pdf">
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Section F: Witness Information -->
+		<div class="card mb-4">
+			<div class="card-header bg-secondary text-white">
+				<h5 class="mb-0"><i class="bi bi-person"></i> Section F: Witness Information (Optional)</h5>
+			</div>
+			<div class="card-body">
+				<div class="row">
+					<div class="col-md-4 mb-3">
+						{{ form.witness_name.label(class="form-label") }}
+						{{ form.witness_name(class="form-control") }}
+					</div>
+					<div class="col-md-4 mb-3">
+						{{ form.witness_contact.label(class="form-label") }}
+						{{ form.witness_contact(class="form-control") }}
+					</div>
+					<div class="col-md-4 mb-3">
+						{{ form.witness_statement.label(class="form-label") }}
+						{{ form.witness_statement(class="form-control", rows=3) }}
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Section G: Declaration -->
+		<div class="card mb-4">
+			<div class="card-header bg-success text-white">
+				<h5 class="mb-0"><i class="bi bi-check-circle"></i> Section G: Declaration</h5>
+			</div>
+			<div class="card-body">
+				<div class="form-check mb-3">
+					<input class="form-check-input" type="checkbox" id="declaration" required>
+					<label class="form-check-label" for="declaration">
+						<strong>I hereby declare that the information provided above is true and accurate to the best of my knowledge.</strong>
+					</label>
+				</div>
+				<div class="alert alert-light">
+					<p class="mb-0"><strong>Date Submitted:</strong> {{ datetime.now().strftime('%d %B %Y') }}</p>
+				</div>
+			</div>
+		</div>
+
+		<!-- Submit Button -->
+		<div class="text-center mb-4" id="buttonContainer">
+			<button type="submit" class="btn btn-primary btn-lg px-5" id="submitBtn">
+				<i class="bi bi-send"></i> Submit Claim
+			</button>
+			<a href="{{ url_for('manage_claims') }}" class="btn btn-outline-secondary btn-lg px-5">
+				<i class="bi bi-x-circle"></i> Cancel
+			</a>
+		</div>
+
+		<!-- Progress Bar (hidden by default) -->
+		<div id="uploadProgress" class="mb-4" style="display: none;">
+			<div class="alert alert-info mb-3">
+				<div class="d-flex align-items-center">
+					<div class="spinner-border spinner-border-sm me-2" role="status">
+						<span class="visually-hidden">Loading...</span>
+					</div>
+					<strong>Uploading claim and documents...</strong>
+				</div>
+				<small class="d-block mt-2">Please wait while we process your claim submission.</small>
+			</div>
+			<div class="progress" style="height: 35px; border-radius: 10px;">
+				<div class="progress-bar progress-bar-striped progress-bar-animated bg-success" 
+					 role="progressbar" 
+					 style="width: 0%; font-size: 16px; font-weight: bold;" 
+					 id="progressBar">
+					<span id="progressText">Preparing...</span>
+				</div>
+			</div>
+			<p class="text-center mt-2 text-muted" id="progressMessage">
+				<small>Validating form data...</small>
+			</p>
+		</div>
+	</form>
+</div>
+
+<script>
+// Policy search autocomplete
+let policySearchTimeout;
+document.getElementById('policySearch').addEventListener('input', function() {
+	const query = this.value.trim();
+	
+	if (query.length < 2) {
+		document.getElementById('policyResults').style.display = 'none';
+		return;
+	}
+	
+	clearTimeout(policySearchTimeout);
+	policySearchTimeout = setTimeout(() => {
+		fetch(`/api/search-policies?q=${encodeURIComponent(query)}`)
+			.then(response => response.json())
+			.then(data => {
+				const resultsDiv = document.getElementById('policyResults');
+				resultsDiv.innerHTML = '';
+				
+				if (data.policies.length === 0) {
+					resultsDiv.innerHTML = '<div class="list-group-item">No policies found</div>';
+				} else {
+					data.policies.forEach(policy => {
+						const item = document.createElement('a');
+						item.href = '#';
+						item.className = 'list-group-item list-group-item-action';
+						item.innerHTML = `
+							<div class="d-flex w-100 justify-content-between">
+								<h6 class="mb-1">${policy.policy_number} - ${policy.insured_name}</h6>
+								<small>${policy.policy_type}</small>
+							</div>
+							<p class="mb-1">${policy.registration_number} | ${policy.make_model}</p>
+						`;
+						item.onclick = (e) => {
+							e.preventDefault();
+							fillPolicyDetails(policy);
+						};
+						resultsDiv.appendChild(item);
+					});
+				}
+				
+				resultsDiv.style.display = 'block';
+			})
+			.catch(error => console.error('Error:', error));
+	}, 300);
+});
+
+// Fill policy details when selected
+function fillPolicyDetails(policy) {
+	document.getElementById('policy_id').value = policy.id;
+	document.getElementById('policy_number').value = policy.policy_number;
+	document.getElementById('policy_type').value = policy.policy_type;
+	document.getElementById('insured_name').value = policy.insured_name;
+	document.getElementById('national_id').value = policy.national_id;
+	document.getElementById('phone_number').value = policy.phone_number;
+	document.getElementById('registration_number').value = policy.registration_number;
+	document.getElementById('make_model').value = policy.make_model;
+	document.getElementById('year_of_manufacture').value = policy.year_of_manufacture;
+	
+	document.getElementById('policyResults').style.display = 'none';
+	document.getElementById('policyDetails').style.display = 'block';
+	document.getElementById('policySearch').value = `${policy.policy_number} - ${policy.insured_name}`;
+}
+
+// Toggle tow location field
+function toggleTowLocation() {
+	const vehicleTowed = document.querySelector('select[name="vehicle_towed"]').value;
+	const towLocationDiv = document.getElementById('towLocationDiv');
+	
+	if (vehicleTowed === 'Yes') {
+		towLocationDiv.style.display = 'block';
+	} else {
+		towLocationDiv.style.display = 'none';
+		document.querySelector('input[name="tow_location"]').value = '';
+	}
+}
+
+// Hide results when clicking outside
+document.addEventListener('click', function(e) {
+	if (!e.target.closest('#policySearch') && !e.target.closest('#policyResults')) {
+		document.getElementById('policyResults').style.display = 'none';
+	}
+});
+
+// Form submission with progress bar
+document.getElementById('claimForm').addEventListener('submit', function(e) {
+	const declaration = document.getElementById('declaration');
+	if (!declaration.checked) {
+		e.preventDefault();
+		alert('Please check the declaration to confirm the information is accurate.');
+		return false;
+	}
+	
+	const policyId = document.getElementById('policy_id').value;
+	if (!policyId) {
+		e.preventDefault();
+		alert('Please search and select a policy first.');
+		return false;
+	}
+	
+	// Show progress bar immediately
+	const uploadProgress = document.getElementById('uploadProgress');
+	const buttonContainer = document.getElementById('buttonContainer');
+	const submitBtn = document.getElementById('submitBtn');
+	const progressBar = document.getElementById('progressBar');
+	const progressText = document.getElementById('progressText');
+	const progressMessage = document.getElementById('progressMessage');
+	
+	// Scroll to progress bar
+	uploadProgress.style.display = 'block';
+	uploadProgress.scrollIntoView({ behavior: 'smooth', block: 'center' });
+	
+	// Hide buttons and disable form
+	buttonContainer.style.display = 'none';
+	submitBtn.disabled = true;
+	
+	// Disable all form inputs
+	const formInputs = this.querySelectorAll('input, textarea, select, button');
+	formInputs.forEach(input => input.disabled = true);
+	
+	// Progress stages with messages
+	const stages = [
+		{ progress: 15, message: 'Validating form data...' },
+		{ progress: 30, message: 'Creating claim record...' },
+		{ progress: 50, message: 'Uploading accident photos...' },
+		{ progress: 65, message: 'Uploading damage photos...' },
+		{ progress: 80, message: 'Uploading official documents...' },
+		{ progress: 95, message: 'Finalizing submission...' },
+		{ progress: 100, message: 'Complete! Redirecting...' }
+	];
+	
+	let currentStage = 0;
+	let progress = 0;
+	
+	// Smooth progress animation
+	const progressInterval = setInterval(function() {
+		if (currentStage < stages.length) {
+			const targetProgress = stages[currentStage].progress;
+			
+			if (progress < targetProgress) {
+				progress += 1;
+				progressBar.style.width = progress + '%';
+				progressText.textContent = progress + '%';
+			} else {
+				progressMessage.innerHTML = `<small><i class="bi bi-check-circle text-success"></i> ${stages[currentStage].message}</small>`;
+				currentStage++;
+			}
+		} else {
+			clearInterval(progressInterval);
+		}
+	}, 80);
+	
+	// Allow form to submit normally
+	return true;
+});
+</script>
+{% endblock %}

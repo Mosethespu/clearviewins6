@@ -1,0 +1,322 @@
+{% extends "base.html" %}
+
+{% block title %}Review Claim {{ claim.claim_number }} - ClearView Insurance{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+	<!-- Header -->
+	<div class="row mb-4">
+		<div class="col-md-6">
+			<h2><i class="bi bi-search"></i> Review Claim</h2>
+			<p class="text-muted">Claim Number: <strong>{{ claim.claim_number }}</strong></p>
+		</div>
+		<div class="col-md-6 text-end">
+			<a href="{{ url_for('view_claim', claim_id=claim.id) }}" class="btn btn-outline-secondary">
+				<i class="bi bi-arrow-left"></i> Back to Claim
+			</a>
+		</div>
+	</div>
+
+	<!-- Status Alert -->
+	<div class="row mb-4">
+		<div class="col-12">
+			<div class="alert alert-warning">
+				<i class="bi bi-exclamation-triangle"></i> <strong>Review Mode:</strong> Please carefully verify all information below before moving this claim to "Under Review" status.
+			</div>
+		</div>
+	</div>
+
+	<!-- Section A: Policy Information -->
+	<div class="card mb-4">
+		<div class="card-header bg-primary text-white">
+			<h5 class="mb-0"><i class="bi bi-file-text"></i> Section A: Policy Information</h5>
+		</div>
+		<div class="card-body">
+			<div class="row">
+				<div class="col-md-4 mb-3">
+					<label class="text-muted">Policy Number</label>
+					<p class="fw-bold">
+						<a href="{{ url_for('view_policy', policy_id=policy.id) }}" target="_blank">{{ policy.policy_number }}</a>
+					</p>
+				</div>
+				<div class="col-md-4 mb-3">
+					<label class="text-muted">Policy Type</label>
+					<p class="fw-bold">{{ policy.policy_type }}</p>
+				</div>
+				<div class="col-md-4 mb-3">
+					<label class="text-muted">Insurance Company</label>
+					<p class="fw-bold">{{ claim.insurance_company.name }}</p>
+				</div>
+			</div>
+			<div class="row">
+				<div class="col-md-6 mb-3">
+					<label class="text-muted">Insured Name</label>
+					<p class="fw-bold">{{ policy.insured_name }}</p>
+				</div>
+				<div class="col-md-3 mb-3">
+					<label class="text-muted">National ID</label>
+					<p class="fw-bold">{{ policy.national_id }}</p>
+				</div>
+				<div class="col-md-3 mb-3">
+					<label class="text-muted">Phone Number</label>
+					<p class="fw-bold">{{ policy.phone_number }}</p>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Section B: Vehicle Details -->
+	<div class="card mb-4">
+		<div class="card-header bg-secondary text-white">
+			<h5 class="mb-0"><i class="bi bi-car-front"></i> Section B: Vehicle Details</h5>
+		</div>
+		<div class="card-body">
+			<div class="row">
+				<div class="col-md-4 mb-3">
+					<label class="text-muted">Registration Number</label>
+					<p class="fw-bold">{{ policy.registration_number }}</p>
+				</div>
+				<div class="col-md-4 mb-3">
+					<label class="text-muted">Make & Model</label>
+					<p class="fw-bold">{{ policy.make_model }}</p>
+				</div>
+				<div class="col-md-4 mb-3">
+					<label class="text-muted">Year of Manufacture</label>
+					<p class="fw-bold">{{ policy.year_of_manufacture }}</p>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Section C: Accident Details -->
+	<div class="card mb-4">
+		<div class="card-header bg-warning text-dark">
+			<h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Section C: Accident Details</h5>
+		</div>
+		<div class="card-body">
+			<div class="row">
+				<div class="col-md-4 mb-3">
+					<label class="text-muted">Date of Accident</label>
+					<p class="fw-bold">{{ claim.accident_date.strftime('%d %B %Y') }}</p>
+				</div>
+				<div class="col-md-4 mb-3">
+					<label class="text-muted">Time of Accident</label>
+					<p class="fw-bold">{{ claim.accident_time.strftime('%H:%M') }}</p>
+				</div>
+				<div class="col-md-4 mb-3">
+					<label class="text-muted">Weather Conditions</label>
+					<p class="fw-bold">{{ claim.weather_conditions }}</p>
+				</div>
+			</div>
+			<div class="row">
+				<div class="col-md-6 mb-3">
+					<label class="text-muted">Location of Accident</label>
+					<p class="fw-bold">{{ claim.accident_location }}</p>
+				</div>
+				<div class="col-md-6 mb-3">
+					<label class="text-muted">Police Report Number</label>
+					<p class="fw-bold">{{ claim.police_report_number }}</p>
+				</div>
+			</div>
+			<div class="row">
+				<div class="col-md-12 mb-3">
+					<label class="text-muted">Description of Accident</label>
+					<p>{{ claim.accident_description }}</p>
+				</div>
+			</div>
+			<div class="row">
+				<div class="col-md-6 mb-3">
+					<label class="text-muted">Vehicle Towed?</label>
+					<p class="fw-bold">{{ 'Yes' if claim.vehicle_towed else 'No' }}</p>
+				</div>
+				{% if claim.vehicle_towed %}
+				<div class="col-md-6 mb-3">
+					<label class="text-muted">Tow Location / Garage</label>
+					<p class="fw-bold">{{ claim.tow_location }}</p>
+				</div>
+				{% endif %}
+			</div>
+		</div>
+	</div>
+
+	<!-- Section D: Damage & Injuries -->
+	<div class="card mb-4">
+		<div class="card-header bg-danger text-white">
+			<h5 class="mb-0"><i class="bi bi-bandaid"></i> Section D: Damage & Injuries</h5>
+		</div>
+		<div class="card-body">
+			<div class="row">
+				<div class="col-md-6 mb-3">
+					<label class="text-muted">Damage to Insured Vehicle</label>
+					<p>{{ claim.damage_insured_vehicle }}</p>
+				</div>
+				<div class="col-md-6 mb-3">
+					<label class="text-muted">Damage to Third-Party Property</label>
+					<p>{{ claim.damage_third_party if claim.damage_third_party else 'None reported' }}</p>
+				</div>
+			</div>
+			<div class="row">
+				<div class="col-md-6 mb-3">
+					<label class="text-muted">Injuries to Driver/Passengers</label>
+					<p>{{ claim.injuries_driver_passengers if claim.injuries_driver_passengers else 'None reported' }}</p>
+				</div>
+				<div class="col-md-6 mb-3">
+					<label class="text-muted">Injuries to Third Parties</label>
+					<p>{{ claim.injuries_third_parties if claim.injuries_third_parties else 'None reported' }}</p>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Section E: Supporting Documents -->
+	<div class="card mb-4">
+		<div class="card-header bg-info text-white">
+			<h5 class="mb-0"><i class="bi bi-paperclip"></i> Section E: Supporting Documents</h5>
+		</div>
+		<div class="card-body">
+			<div class="row">
+				<!-- Accident Photos -->
+				{% if accident_photos %}
+				<div class="col-md-12 mb-3">
+					<label class="text-muted">Accident Photos</label>
+					<div class="row g-2">
+						{% for photo in accident_photos %}
+						<div class="col-md-3">
+							<img src="{{ url_for('uploaded_file', filename=photo.file_path) }}" 
+								 class="img-fluid rounded shadow-sm" 
+								 alt="{{ photo.document_type }}"
+								 style="cursor: pointer; height: 150px; width: 100%; object-fit: cover;"
+								 onclick="window.open(this.src, '_blank')">
+						</div>
+						{% endfor %}
+					</div>
+				</div>
+				{% endif %}
+
+				<!-- Damage Photos -->
+				{% if damage_photos %}
+				<div class="col-md-12 mb-3">
+					<label class="text-muted">Vehicle Damage Photos</label>
+					<div class="row g-2">
+						{% for photo in damage_photos %}
+						<div class="col-md-3">
+							<img src="{{ url_for('uploaded_file', filename=photo.file_path) }}" 
+								 class="img-fluid rounded shadow-sm" 
+								 alt="{{ photo.document_type }}"
+								 style="cursor: pointer; height: 150px; width: 100%; object-fit: cover;"
+								 onclick="window.open(this.src, '_blank')">
+						</div>
+						{% endfor %}
+					</div>
+				</div>
+				{% endif %}
+
+				<!-- Document Links -->
+				{% if police_docs %}
+				<div class="col-md-4 mb-3">
+					<label class="text-muted">Police Abstract</label>
+					<div class="list-group">
+						{% for doc in police_docs %}
+						<a href="{{ url_for('uploaded_file', filename=doc.file_path) }}" target="_blank" class="list-group-item list-group-item-action">
+							<i class="bi bi-file-earmark-pdf"></i> View Document
+						</a>
+						{% endfor %}
+					</div>
+				</div>
+				{% endif %}
+
+				{% if license_docs %}
+				<div class="col-md-4 mb-3">
+					<label class="text-muted">Driver's License</label>
+					<div class="list-group">
+						{% for doc in license_docs %}
+						<a href="{{ url_for('uploaded_file', filename=doc.file_path) }}" target="_blank" class="list-group-item list-group-item-action">
+							<i class="bi bi-file-earmark-image"></i> View Document
+						</a>
+						{% endfor %}
+					</div>
+				</div>
+				{% endif %}
+
+				{% if logbook_docs %}
+				<div class="col-md-4 mb-3">
+					<label class="text-muted">Logbook</label>
+					<div class="list-group">
+						{% for doc in logbook_docs %}
+						<a href="{{ url_for('uploaded_file', filename=doc.file_path) }}" target="_blank" class="list-group-item list-group-item-action">
+							<i class="bi bi-file-earmark-image"></i> View Document
+						</a>
+						{% endfor %}
+					</div>
+				</div>
+				{% endif %}
+			</div>
+		</div>
+	</div>
+
+	<!-- Section F: Witness Information -->
+	{% if claim.witness_name or claim.witness_contact or claim.witness_statement %}
+	<div class="card mb-4">
+		<div class="card-header bg-secondary text-white">
+			<h5 class="mb-0"><i class="bi bi-person"></i> Section F: Witness Information</h5>
+		</div>
+		<div class="card-body">
+			<div class="row">
+				<div class="col-md-4 mb-3">
+					<label class="text-muted">Witness Name</label>
+					<p class="fw-bold">{{ claim.witness_name if claim.witness_name else 'N/A' }}</p>
+				</div>
+				<div class="col-md-4 mb-3">
+					<label class="text-muted">Contact Number</label>
+					<p class="fw-bold">{{ claim.witness_contact if claim.witness_contact else 'N/A' }}</p>
+				</div>
+				<div class="col-md-4 mb-3">
+					<label class="text-muted">Statement</label>
+					<p>{{ claim.witness_statement if claim.witness_statement else 'N/A' }}</p>
+				</div>
+			</div>
+		</div>
+	</div>
+	{% endif %}
+
+	<!-- Review Form -->
+	<div class="card mb-4 border-primary">
+		<div class="card-header bg-primary text-white">
+			<h5 class="mb-0"><i class="bi bi-clipboard-check"></i> Review Confirmation</h5>
+		</div>
+		<div class="card-body">
+			<form method="POST" action="{{ url_for('review_claim', claim_id=claim.id) }}">
+				<div class="mb-3">
+					<label for="review_notes" class="form-label">
+						<strong>Review Notes (Optional)</strong>
+					</label>
+					<textarea class="form-control" id="review_notes" name="review_notes" 
+							  rows="3" 
+							  placeholder="Add any notes or observations about this claim..."></textarea>
+					<small class="text-muted">These notes will be recorded with your review.</small>
+				</div>
+				
+				<div class="alert alert-info">
+					<i class="bi bi-info-circle"></i> 
+					<strong>Checklist:</strong> Before proceeding, verify that:
+					<ul class="mb-0 mt-2">
+						<li>All required information is complete and accurate</li>
+						<li>Supporting documents have been uploaded and are valid</li>
+						<li>Policy is active and covers the reported incident</li>
+						<li>Accident details match the supporting documents</li>
+					</ul>
+				</div>
+				
+				<div class="d-flex justify-content-between">
+					<a href="{{ url_for('view_claim', claim_id=claim.id) }}" class="btn btn-outline-secondary">
+						<i class="bi bi-x"></i> Cancel
+					</a>
+					<button type="submit" class="btn btn-primary btn-lg">
+						<i class="bi bi-check-circle"></i> Confirm Review & Proceed to Under Review
+					</button>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+{% endblock %}

@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+
+{% block title %}Quote {{ quote.quote_number }} - ClearView Insurance{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+	<!-- Header -->
+	<div class="row mb-4">
+		<div class="col-md-6">
+			<h2><i class="bi bi-file-earmark-text"></i> Quote Details</h2>
+			<p class="text-muted">Quote Number: <strong>{{ quote.quote_number }}</strong></p>
+		</div>
+		<div class="col-md-6 text-end">
+			<a href="{{ url_for('insurer_dashboard') }}" class="btn btn-outline-secondary">
+				<i class="bi bi-house"></i> Dashboard
+			</a>
+		</div>
+	</div>
+
+	<div class="row">
+		<div class="col-lg-8">
+			<!-- Quote Information -->
+			<div class="card shadow-sm mb-4">
+				<div class="card-header bg-primary text-white">
+					<h5 class="mb-0"><i class="bi bi-info-circle"></i> Quote Information</h5>
+				</div>
+				<div class="card-body">
+					<div class="row">
+						<div class="col-md-6 mb-3">
+							<label class="text-muted">Quote Number</label>
+							<p class="fw-bold">{{ quote.quote_number }}</p>
+						</div>
+						<div class="col-md-6 mb-3">
+							<label class="text-muted">Status</label>
+							<p>
+								{% if quote.status == 'Sent' %}
+									<span class="badge bg-info">{{ quote.status }}</span>
+								{% elif quote.status == 'Accepted' %}
+									<span class="badge bg-success">{{ quote.status }}</span>
+								{% elif quote.status == 'Converted' %}
+									<span class="badge bg-success">{{ quote.status }}</span>
+								{% elif quote.status == 'Expired' %}
+									<span class="badge bg-danger">{{ quote.status }}</span>
+								{% endif %}
+							</p>
+						</div>
+					</div>
+					<div class="row">
+						<div class="col-md-6 mb-3">
+							<label class="text-muted">Created By</label>
+							<p class="fw-bold">{{ creator.username if creator else 'Unknown' }}</p>
+						</div>
+						<div class="col-md-6 mb-3">
+							<label class="text-muted">Created Date</label>
+							<p class="fw-bold">{{ quote.created_at.strftime('%d %B %Y at %H:%M') }}</p>
+						</div>
+					</div>
+					<div class="row">
+						<div class="col-md-6 mb-3">
+							<label class="text-muted">Valid Until</label>
+							<p class="fw-bold">{{ quote.valid_until.strftime('%d %B %Y') if quote.valid_until else 'N/A' }}</p>
+						</div>
+						<div class="col-md-6 mb-3">
+							<label class="text-muted">Insurance Company</label>
+							<p class="fw-bold">{{ quote.insurance_company.name }}</p>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Customer Information -->
+			<div class="card shadow-sm mb-4">
+				<div class="card-header bg-info text-white">
+					<h5 class="mb-0"><i class="bi bi-person"></i> Customer Information</h5>
+				</div>
+				<div class="card-body">
+					<div class="row">
+						<div class="col-md-6 mb-3">
+							<label class="text-muted">Email</label>
+							<p class="fw-bold">{{ quote.customer_email }}</p>
+						</div>
+						<div class="col-md-6 mb-3">
+							<label class="text-muted">Name</label>
+							<p class="fw-bold">{{ quote.customer_name if quote.customer_name else 'Not provided' }}</p>
+						</div>
+					</div>
+					<div class="row">
+						<div class="col-md-6 mb-3">
+							<label class="text-muted">Phone</label>
+							<p class="fw-bold">{{ quote.customer_phone if quote.customer_phone else 'Not provided' }}</p>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Vehicle & Coverage Information -->
+			<div class="card shadow-sm mb-4">
+				<div class="card-header bg-secondary text-white">
+					<h5 class="mb-0"><i class="bi bi-car-front"></i> Vehicle & Coverage Details</h5>
+				</div>
+				<div class="card-body">
+					<div class="row">
+						<div class="col-md-6 mb-3">
+							<label class="text-muted">Cover Type</label>
+							<p class="fw-bold">{{ quote.cover_type }}</p>
+						</div>
+						<div class="col-md-6 mb-3">
+							<label class="text-muted">Use Category</label>
+							<p class="fw-bold">{{ quote.use_category }}</p>
+						</div>
+					</div>
+					<div class="row">
+						<div class="col-md-6 mb-3">
+							<label class="text-muted">Vehicle Value</label>
+							<p class="fw-bold">KES {{ "{:,.2f}".format(quote.vehicle_value) }}</p>
+						</div>
+						<div class="col-md-6 mb-3">
+							<label class="text-muted">Registration Number</label>
+							<p class="fw-bold">{{ quote.registration_number if quote.registration_number else 'Not provided' }}</p>
+						</div>
+					</div>
+					{% if quote.make_model or quote.year_of_manufacture %}
+					<div class="row">
+						{% if quote.make_model %}
+						<div class="col-md-6 mb-3">
+							<label class="text-muted">Make & Model</label>
+							<p class="fw-bold">{{ quote.make_model }}</p>
+						</div>
+						{% endif %}
+						{% if quote.year_of_manufacture %}
+						<div class="col-md-6 mb-3">
+							<label class="text-muted">Year of Manufacture</label>
+							<p class="fw-bold">{{ quote.year_of_manufacture }}</p>
+						</div>
+						{% endif %}
+					</div>
+					{% endif %}
+				</div>
+			</div>
+
+			<!-- Add-ons -->
+			{% if quote.political_violence or quote.windscreen_cover or quote.passenger_liability or quote.road_rescue %}
+			<div class="card shadow-sm mb-4">
+				<div class="card-header bg-success text-white">
+					<h5 class="mb-0"><i class="bi bi-plus-circle"></i> Optional Add-ons</h5>
+				</div>
+				<div class="card-body">
+					<ul class="list-unstyled mb-0">
+						{% if quote.political_violence %}
+						<li><i class="bi bi-check-circle text-success"></i> Political Violence & Terrorism</li>
+						{% endif %}
+						{% if quote.windscreen_cover %}
+						<li><i class="bi bi-check-circle text-success"></i> Windscreen Cover</li>
+						{% endif %}
+						{% if quote.passenger_liability %}
+						<li><i class="bi bi-check-circle text-success"></i> Passenger Liability</li>
+						{% endif %}
+						{% if quote.road_rescue %}
+						<li><i class="bi bi-check-circle text-success"></i> Road Rescue Services</li>
+						{% endif %}
+					</ul>
+				</div>
+			</div>
+			{% endif %}
+		</div>
+
+		<div class="col-lg-4">
+			<!-- Premium Summary -->
+			<div class="card shadow-sm border-success sticky-top" style="top: 20px;">
+				<div class="card-header bg-success text-white">
+					<h5 class="mb-0"><i class="bi bi-currency-exchange"></i> Premium Summary</h5>
+				</div>
+				<div class="card-body">
+					<table class="table table-sm">
+						<tr>
+							<td><strong>Base Premium:</strong></td>
+							<td class="text-end">KES {{ "{:,.2f}".format(quote.base_premium) }}</td>
+						</tr>
+						<tr class="table-success">
+							<td><strong>Total Premium:</strong></td>
+							<td class="text-end"><h4 class="mb-0">KES {{ "{:,.2f}".format(quote.final_premium) }}</h4></td>
+						</tr>
+					</table>
+					
+					<hr>
+					
+					<div class="alert alert-info">
+						<small><i class="bi bi-info-circle"></i> <strong>Annual Premium</strong></small>
+						<h3 class="mb-0 mt-2">KES {{ "{:,.2f}".format(quote.final_premium) }}</h3>
+					</div>
+					
+					{% if quote.status == 'Sent' %}
+					<div class="d-grid gap-2 mt-3">
+						<a href="{{ url_for('create_policy') }}" class="btn btn-primary">
+							<i class="bi bi-file-earmark-plus"></i> Convert to Policy
+						</a>
+					</div>
+					{% endif %}
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %}

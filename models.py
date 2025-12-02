@@ -135,10 +135,15 @@ class Policy(db.Model):
 	insurance_company_id = db.Column(db.Integer, db.ForeignKey('insurance_company.id'), nullable=False)
 	created_by = db.Column(db.Integer, db.ForeignKey('insurer.id'), nullable=False)
 	date_entered = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+	status = db.Column(db.String(20), default='Active', nullable=False)  # Active, Expired, Cancelled
+	cancelled_by = db.Column(db.Integer, db.ForeignKey('insurer.id'), nullable=True)
+	cancellation_date = db.Column(db.DateTime, nullable=True)
+	cancellation_reason = db.Column(db.Text, nullable=True)
 	
 	# Relationships
 	insurance_company = db.relationship('InsuranceCompany', backref='policies', lazy=True)
-	creator = db.relationship('Insurer', backref='created_policies', lazy=True)
+	creator = db.relationship('Insurer', backref='created_policies', lazy=True, foreign_keys=[created_by])
+	canceller = db.relationship('Insurer', backref='cancelled_policies', lazy=True, foreign_keys=[cancelled_by])
 	photos = db.relationship('PolicyPhoto', backref='policy', lazy=True, cascade='all, delete-orphan')
 
 class PolicyPhoto(db.Model):
@@ -147,3 +152,155 @@ class PolicyPhoto(db.Model):
 	photo_type = db.Column(db.String(50), nullable=False)  # front_view, left_side, etc.
 	file_path = db.Column(db.String(500), nullable=False)
 	uploaded_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+
+class Claim(db.Model):
+	id = db.Column(db.Integer, primary_key=True)
+	claim_number = db.Column(db.String(20), unique=True, nullable=False)
+	
+	# Section A: Policy Information (auto-filled from policy)
+	policy_id = db.Column(db.Integer, db.ForeignKey('policy.id'), nullable=False)
+	insurance_company_id = db.Column(db.Integer, db.ForeignKey('insurance_company.id'), nullable=False)
+	
+	# Section C: Accident Details
+	accident_date = db.Column(db.Date, nullable=False)
+	accident_time = db.Column(db.Time, nullable=False)
+	accident_location = db.Column(db.String(500), nullable=False)
+	accident_description = db.Column(db.Text, nullable=False)
+	weather_conditions = db.Column(db.String(50), nullable=False)  # Clear, Rainy, Foggy, etc.
+	police_report_number = db.Column(db.String(100), nullable=False)
+	vehicle_towed = db.Column(db.Boolean, default=False, nullable=False)
+	tow_location = db.Column(db.String(300))
+	
+	# Section D: Damage & Injuries
+	damage_insured_vehicle = db.Column(db.Text, nullable=False)
+	damage_third_party = db.Column(db.Text)
+	injuries_driver_passengers = db.Column(db.Text)
+	injuries_third_parties = db.Column(db.Text)
+	
+	# Section F: Witness Information
+	witness_name = db.Column(db.String(200))
+	witness_contact = db.Column(db.String(20))
+	witness_statement = db.Column(db.Text)
+	
+	# System fields
+	status = db.Column(db.String(50), default='Pending', nullable=False)  # Pending, Under Review, Approved, Rejected
+	created_by = db.Column(db.Integer, db.ForeignKey('insurer.id'), nullable=False)
+	date_submitted = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+	last_updated = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+	
+	# Review fields
+	reviewed_by = db.Column(db.Integer, db.ForeignKey('insurer.id'), nullable=True)
+	review_date = db.Column(db.DateTime, nullable=True)
+	review_notes = db.Column(db.Text, nullable=True)
+	
+	# Fraud check fields
+	fraud_check_performed = db.Column(db.Boolean, default=False, nullable=False)
+	fraud_check_date = db.Column(db.DateTime, nullable=True)
+	fraud_check_result = db.Column(db.Text, nullable=True)
+	fraud_risk_score = db.Column(db.Float, nullable=True)  # 0-100 score
+	
+	# Approval/Rejection fields
+	approved_by = db.Column(db.Integer, db.ForeignKey('insurer.id'), nullable=True)
+	approval_date = db.Column(db.DateTime, nullable=True)
+	rejection_reason = db.Column(db.Text, nullable=True)
+	
+	# Relationships
+	policy = db.relationship('Policy', backref='claims')
+	insurance_company = db.relationship('InsuranceCompany', backref='claims')
+	documents = db.relationship('ClaimDocument', backref='claim', cascade='all, delete-orphan')
+	creator = db.relationship('Insurer', backref='claims_created', foreign_keys=[created_by])
+	reviewer = db.relationship('Insurer', backref='claims_reviewed', foreign_keys=[reviewed_by])
+	approver = db.relationship('Insurer', backref='claims_approved', foreign_keys=[approved_by])
+
+
+class ClaimDocument(db.Model):
+	id = db.Column(db.Integer, primary_key=True)
+	claim_id = db.Column(db.Integer, db.ForeignKey('claim.id'), nullable=False)
+	document_type = db.Column(db.String(100), nullable=False)  # accident_photo, police_abstract, driver_license, logbook, etc.
+	file_path = db.Column(db.String(500), nullable=False)
+	uploaded_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+
+class PremiumRate(db.Model):
+	"""Insurance company-specific premium rates"""
+	id = db.Column(db.Integer, primary_key=True)
+	insurance_company_id = db.Column(db.Integer, db.ForeignKey('insurance_company.id'), nullable=False)
+	
+	# Cover type
+	cover_type = db.Column(db.String(50), nullable=False)  # Comprehensive, Third-Party Only, Third-Party Fire & Theft, PSV
+	
+	# Comprehensive rates (percentage of vehicle value)
+	comprehensive_min_rate = db.Column(db.Float, nullable=True)  # e.g., 4.0 for 4%
+	comprehensive_max_rate = db.Column(db.Float, nullable=True)  # e.g., 7.0 for 7%
+	comprehensive_default_rate = db.Column(db.Float, nullable=True)  # e.g., 5.0 for 5%
+	
+	# Third-Party Only (flat rate)
+	tpo_flat_rate = db.Column(db.Float, nullable=True)  # e.g., 8000.0
+	
+	# Third-Party Fire & Theft
+	tpft_base_rate = db.Column(db.Float, nullable=True)  # Base TPO rate
+	tpft_percentage = db.Column(db.Float, nullable=True)  # e.g., 1.5 for 1.5% of vehicle value
+	
+	# PSV rates (flat rates by vehicle type)
+	psv_taxi_rate = db.Column(db.Float, nullable=True)  # e.g., 25000.0
+	psv_matatu_14_rate = db.Column(db.Float, nullable=True)  # e.g., 70000.0
+	psv_matatu_25_rate = db.Column(db.Float, nullable=True)  # e.g., 90000.0
+	psv_bus_rate = db.Column(db.Float, nullable=True)  # e.g., 135000.0
+	
+	# Metadata
+	is_active = db.Column(db.Boolean, default=True, nullable=False)
+	created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+	updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+	
+	# Relationships
+	insurance_company = db.relationship('InsuranceCompany', backref='premium_rates')
+	
+	# Unique constraint: one rate config per cover type per company
+	__table_args__ = (db.UniqueConstraint('insurance_company_id', 'cover_type', name='_company_cover_uc'),)
+
+
+class Quote(db.Model):
+	"""Insurance quotes generated from premium calculator"""
+	id = db.Column(db.Integer, primary_key=True)
+	quote_number = db.Column(db.String(20), unique=True, nullable=False)
+	insurance_company_id = db.Column(db.Integer, db.ForeignKey('insurance_company.id'), nullable=False)
+	created_by = db.Column(db.Integer, db.ForeignKey('insurer.id'), nullable=False)
+	
+	# Customer information
+	customer_email = db.Column(db.String(150), nullable=False)
+	customer_name = db.Column(db.String(200), nullable=True)
+	customer_phone = db.Column(db.String(20), nullable=True)
+	
+	# Vehicle information
+	vehicle_value = db.Column(db.Float, nullable=False)
+	registration_number = db.Column(db.String(50), nullable=True)
+	make_model = db.Column(db.String(150), nullable=True)
+	year_of_manufacture = db.Column(db.Integer, nullable=True)
+	
+	# Coverage details
+	cover_type = db.Column(db.String(50), nullable=False)  # Comprehensive, Third-Party Only, etc.
+	use_category = db.Column(db.String(50), nullable=True)  # Private, Commercial, PSV
+	
+	# Premium calculation
+	base_premium = db.Column(db.Float, nullable=False)
+	rate_applied = db.Column(db.Float, nullable=True)  # Percentage or flat rate used
+	final_premium = db.Column(db.Float, nullable=False)
+	
+	# Add-ons (optional extras)
+	political_violence = db.Column(db.Boolean, default=False)
+	windscreen_cover = db.Column(db.Boolean, default=False)
+	passenger_liability = db.Column(db.Boolean, default=False)
+	road_rescue = db.Column(db.Boolean, default=False)
+	
+	# Status
+	status = db.Column(db.String(20), default='Sent', nullable=False)  # Sent, Accepted, Converted, Expired
+	
+	# Timestamps
+	created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+	valid_until = db.Column(db.DateTime, nullable=True)  # Quote expiry date
+	
+	# Relationships
+	insurance_company = db.relationship('InsuranceCompany', backref='quotes')
+	creator = db.relationship('Insurer', backref='quotes_created')
+

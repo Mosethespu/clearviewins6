@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Claims - ClearView Insurance{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+	<!-- Header -->
+	<div class="row mb-4">
+		<div class="col-md-6">
+			<h2><i class="bi bi-file-earmark-medical"></i> Claims Management</h2>
+			<p class="text-muted">View and manage insurance claims</p>
+		</div>
+		<div class="col-md-6 text-end">
+			<a href="{{ url_for('create_claim') }}" class="btn btn-primary">
+				<i class="bi bi-plus-circle"></i> File New Claim
+			</a>
+			<a href="{{ url_for('insurer_dashboard') }}" class="btn btn-outline-secondary">
+				<i class="bi bi-house"></i> Dashboard
+			</a>
+		</div>
+	</div>
+
+	<!-- Statistics Cards -->
+	<div class="row mb-4">
+		<div class="col-md-3">
+			<div class="card border-primary">
+				<div class="card-body">
+					<div class="d-flex align-items-center">
+						<div class="flex-grow-1">
+							<h6 class="text-muted mb-1">Total Claims</h6>
+							<h3 class="mb-0">{{ total_claims }}</h3>
+						</div>
+						<div class="text-primary">
+							<i class="bi bi-file-earmark-medical fs-1"></i>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="col-md-3">
+			<div class="card border-warning">
+				<div class="card-body">
+					<div class="d-flex align-items-center">
+						<div class="flex-grow-1">
+							<h6 class="text-muted mb-1">Pending</h6>
+							<h3 class="mb-0">{{ pending_claims }}</h3>
+						</div>
+						<div class="text-warning">
+							<i class="bi bi-clock-history fs-1"></i>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="col-md-3">
+			<div class="card border-info">
+				<div class="card-body">
+					<div class="d-flex align-items-center">
+						<div class="flex-grow-1">
+							<h6 class="text-muted mb-1">Under Review</h6>
+							<h3 class="mb-0">{{ under_review }}</h3>
+						</div>
+						<div class="text-info">
+							<i class="bi bi-search fs-1"></i>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="col-md-3">
+			<div class="card border-success">
+				<div class="card-body">
+					<div class="d-flex align-items-center">
+						<div class="flex-grow-1">
+							<h6 class="text-muted mb-1">Approved</h6>
+							<h3 class="mb-0">{{ approved_claims }}</h3>
+						</div>
+						<div class="text-success">
+							<i class="bi bi-check-circle fs-1"></i>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Search and Filter -->
+	<div class="card mb-4">
+		<div class="card-body">
+			<form method="GET" action="{{ url_for('manage_claims') }}">
+				<div class="row g-3">
+					<div class="col-md-5">
+						<label for="search" class="form-label">Search</label>
+						<input type="text" class="form-control" id="search" name="search" 
+							   placeholder="Claim number, policy number, or insured name" 
+							   value="{{ search_query }}">
+					</div>
+					<div class="col-md-3">
+						<label for="status" class="form-label">Status</label>
+						<select class="form-select" id="status" name="status">
+							<option value="">All Statuses</option>
+							<option value="Pending" {% if status_filter == 'Pending' %}selected{% endif %}>Pending</option>
+							<option value="Under Review" {% if status_filter == 'Under Review' %}selected{% endif %}>Under Review</option>
+							<option value="Approved" {% if status_filter == 'Approved' %}selected{% endif %}>Approved</option>
+							<option value="Rejected" {% if status_filter == 'Rejected' %}selected{% endif %}>Rejected</option>
+						</select>
+					</div>
+					<div class="col-md-4">
+						<label class="form-label d-block">&nbsp;</label>
+						<button type="submit" class="btn btn-primary">
+							<i class="bi bi-search"></i> Search
+						</button>
+						<a href="{{ url_for('manage_claims') }}" class="btn btn-outline-secondary">
+							<i class="bi bi-x-circle"></i> Clear
+						</a>
+					</div>
+				</div>
+			</form>
+		</div>
+	</div>
+
+	<!-- Claims Table -->
+	<div class="card">
+		<div class="card-body">
+			<h5 class="card-title mb-3">Claims List</h5>
+			
+			{% if claims %}
+			<div class="table-responsive">
+				<table class="table table-hover">
+					<thead>
+						<tr>
+							<th>Claim Number</th>
+							<th>Policy Number</th>
+							<th>Insured Name</th>
+							<th>Accident Date</th>
+							<th>Date Submitted</th>
+							<th>Status</th>
+							<th>Actions</th>
+						</tr>
+					</thead>
+					<tbody>
+						{% for claim in claims %}
+						<tr>
+							<td>
+								<a href="{{ url_for('view_claim', claim_id=claim.id) }}" class="fw-bold text-decoration-none">
+									{{ claim.claim_number }}
+								</a>
+							</td>
+							<td>
+								<a href="{{ url_for('view_policy', policy_id=claim.policy.id) }}" class="text-decoration-none">
+									{{ claim.policy.policy_number }}
+								</a>
+							</td>
+							<td>{{ claim.policy.insured_name }}</td>
+							<td>{{ claim.accident_date.strftime('%d %b %Y') }}</td>
+							<td>{{ claim.date_submitted.strftime('%d %b %Y %H:%M') }}</td>
+							<td>
+								{% if claim.status == 'Pending' %}
+									<span class="badge bg-warning text-dark">
+										<i class="bi bi-clock-history"></i> Pending
+									</span>
+								{% elif claim.status == 'Under Review' %}
+									<span class="badge bg-info">
+										<i class="bi bi-search"></i> Under Review
+									</span>
+								{% elif claim.status == 'Approved' %}
+									<span class="badge bg-success">
+										<i class="bi bi-check-circle"></i> Approved
+									</span>
+								{% elif claim.status == 'Rejected' %}
+									<span class="badge bg-danger">
+										<i class="bi bi-x-circle"></i> Rejected
+									</span>
+								{% else %}
+									<span class="badge bg-secondary">{{ claim.status }}</span>
+								{% endif %}
+							</td>
+							<td>
+								<a href="{{ url_for('view_claim', claim_id=claim.id) }}" class="btn btn-sm btn-outline-primary" title="View Details">
+									<i class="bi bi-eye"></i>
+								</a>
+							</td>
+						</tr>
+						{% endfor %}
+					</tbody>
+				</table>
+			</div>
+			{% else %}
+			<div class="text-center py-5">
+				<i class="bi bi-file-earmark-medical text-muted" style="font-size: 4rem;"></i>
+				<h5 class="mt-3 text-muted">No Claims Found</h5>
+				<p class="text-muted">
+					{% if search_query or status_filter %}
+						No claims match your search criteria. Try adjusting your filters.
+					{% else %}
+						Get started by filing your first claim.
+					{% endif %}
+				</p>
+				<a href="{{ url_for('create_claim') }}" class="btn btn-primary mt-2">
+					<i class="bi bi-plus-circle"></i> File New Claim
+				</a>
+			</div>
+			{% endif %}
+		</div>
+	</div>
+</div>
+{% endblock %}
