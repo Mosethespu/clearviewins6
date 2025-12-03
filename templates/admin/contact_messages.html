@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+{% block title %}Contact Messages - Admin{% endblock %}
+{% block content %}
+<div class="container-fluid py-4">
+	<div class="row">
+		<!-- Sidebar -->
+		<aside class="col-12 col-md-3 col-lg-2 mb-4 mb-md-0">
+			<div class="dashboard-sidebar p-3 bg-light rounded shadow-sm">
+				<h6 class="text-uppercase text-muted mb-3">Admin Options</h6>
+				<div class="d-grid gap-2">
+					<a class="btn btn-outline-danger sidebar-btn" href="{{ url_for('admin_dashboard') }}">
+						<i class="bi bi-speedometer2"></i> Dashboard
+					</a>
+					<a class="btn btn-outline-danger sidebar-btn" href="{{ url_for('admin_search') }}">
+						<i class="bi bi-search"></i> Search
+					</a>
+					<a class="btn btn-outline-danger sidebar-btn" href="{{ url_for('user_management') }}">
+						<i class="bi bi-people"></i> User Management
+					</a>
+					<a class="btn btn-outline-danger sidebar-btn" href="{{ url_for('review_insurer_requests') }}">
+						<i class="bi bi-building"></i> Insurer Requests
+					</a>
+					<a class="btn btn-outline-danger sidebar-btn" href="{{ url_for('review_regulator_requests') }}">
+						<i class="bi bi-shield-check"></i> Regulator Requests
+					</a>
+					<a class="btn btn-danger sidebar-btn" href="{{ url_for('admin_contact_messages') }}">
+						<i class="bi bi-envelope"></i> Contact Messages
+					</a>
+					<a class="btn btn-outline-danger sidebar-btn" href="{{ url_for('admin_reports_and_insights') }}">
+						<i class="bi bi-graph-up"></i> Reports & Insights
+					</a>
+				</div>
+			</div>
+		</aside>
+
+		<!-- Main content -->
+		<main class="col-12 col-md-9 col-lg-10">
+			<div class="px-2 px-md-3">
+				<div class="d-flex justify-content-between align-items-center mb-4">
+					<div>
+						<h2><i class="bi bi-envelope"></i> Contact Messages</h2>
+						<p class="text-muted mb-0">Messages received from the contact form</p>
+					</div>
+				</div>
+
+				<!-- Summary Card -->
+				<div class="row g-3 mb-4">
+					<div class="col-md-4">
+						<div class="card shadow-sm">
+							<div class="card-body text-center">
+								<h3 class="text-primary mb-0">{{ messages|length }}</h3>
+								<p class="text-muted mb-0">Total Messages</p>
+							</div>
+						</div>
+					</div>
+					<div class="col-md-4">
+						<div class="card shadow-sm">
+							<div class="card-body text-center">
+								<h3 class="text-danger mb-0">{{ messages|selectattr('read', 'equalto', False)|list|length }}</h3>
+								<p class="text-muted mb-0">Unread Messages</p>
+							</div>
+						</div>
+					</div>
+					<div class="col-md-4">
+						<div class="card shadow-sm">
+							<div class="card-body text-center">
+								<h3 class="text-success mb-0">{{ messages|selectattr('read', 'equalto', True)|list|length }}</h3>
+								<p class="text-muted mb-0">Read Messages</p>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Messages List -->
+				<div class="card shadow-sm">
+					<div class="card-header bg-danger text-white">
+						<h5 class="mb-0"><i class="bi bi-inbox"></i> All Messages</h5>
+					</div>
+					<div class="card-body p-0">
+						{% if messages %}
+							<div class="list-group list-group-flush">
+								{% for message in messages %}
+								<div class="list-group-item {% if not message.read %}bg-light{% endif %}">
+									<div class="d-flex w-100 justify-content-between align-items-start">
+										<div class="flex-grow-1">
+											<div class="d-flex align-items-center mb-2">
+												<h5 class="mb-0 me-2">
+													{{ message.name }}
+													{% if not message.read %}
+														<span class="badge bg-danger ms-2">New</span>
+													{% endif %}
+												</h5>
+											</div>
+											<p class="mb-1 text-muted">
+												<i class="bi bi-envelope"></i> {{ message.email }}
+											</p>
+											<p class="mb-2">{{ message.message }}</p>
+											<small class="text-muted">
+												<i class="bi bi-clock"></i> Submitted: {{ message.submitted_at.strftime('%B %d, %Y at %I:%M %p') }}
+											</small>
+											{% if message.read %}
+											<br>
+											<small class="text-success">
+												<i class="bi bi-check-circle"></i> Read on {{ message.read_at.strftime('%B %d, %Y at %I:%M %p') }}
+											</small>
+											{% endif %}
+										</div>
+										<div class="ms-3">
+											<div class="btn-group-vertical" role="group">
+												{% if not message.read %}
+												<form action="{{ url_for('mark_message_read', message_id=message.id) }}" method="POST" class="d-inline">
+													<button type="submit" class="btn btn-sm btn-success" title="Mark as read">
+														<i class="bi bi-check2"></i> Mark Read
+													</button>
+												</form>
+												{% endif %}
+												<form action="{{ url_for('delete_contact_message', message_id=message.id) }}" method="POST" 
+													  class="d-inline" onsubmit="return confirm('Are you sure you want to delete this message?');">
+													<button type="submit" class="btn btn-sm btn-danger" title="Delete">
+														<i class="bi bi-trash"></i> Delete
+													</button>
+												</form>
+											</div>
+										</div>
+									</div>
+								</div>
+								{% endfor %}
+							</div>
+						{% else %}
+							<div class="text-center py-5">
+								<i class="bi bi-inbox text-muted" style="font-size: 4rem;"></i>
+								<p class="text-muted mt-3 mb-0">No contact messages yet</p>
+							</div>
+						{% endif %}
+					</div>
+				</div>
+			</div>
+		</main>
+	</div>
+</div>
+{% endblock %}

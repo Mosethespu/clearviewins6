@@ -2,7 +2,7 @@
 from flask import Flask, render_template, redirect, url_for, flash, request, jsonify, send_from_directory, session, Response
 from config import Config
 from extension import db, login_manager, migrate, cache
-from models import Admin, Customer, Insurer, Regulator, InsuranceCompany, InsurerRequest, RegulatoryBody, RegulatorRequest, Policy, PolicyPhoto, Claim, ClaimDocument, PremiumRate, Quote, CustomerMonitoredPolicy, CustomerPolicyRequest, PolicyCancellationRequest, PolicyRenewalRequest
+from models import Admin, Customer, Insurer, Regulator, InsuranceCompany, InsurerRequest, RegulatoryBody, RegulatorRequest, Policy, PolicyPhoto, Claim, ClaimDocument, PremiumRate, Quote, CustomerMonitoredPolicy, CustomerPolicyRequest, PolicyCancellationRequest, PolicyRenewalRequest, BlogPost, ContactMessage
 from forms import SignupForm, LoginForm, InsurerAccessRequestForm, RegulatorAccessRequestForm, PolicyCreationForm, ClaimForm
 from flask_login import login_user, logout_user, current_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -132,10 +132,39 @@ def landing():
 
 @app.route('/blog')
 def blog():
-	return render_template('blog.html')
+	# Get all published blog posts ordered by date
+	posts = BlogPost.query.filter_by(published=True).order_by(BlogPost.created_at.desc()).all()
+	return render_template('blog.html', posts=posts)
 
-@app.route('/contact')
+@app.route('/blog/<slug>')
+def blog_post(slug):
+	# Get specific blog post by slug
+	post = BlogPost.query.filter_by(slug=slug, published=True).first_or_404()
+	# Increment view count
+	post.views += 1
+	db.session.commit()
+	return render_template('blog_post.html', post=post)
+
+@app.route('/contact', methods=['GET', 'POST'])
 def contact():
+	if request.method == 'POST':
+		name = request.form.get('name')
+		email = request.form.get('email')
+		message = request.form.get('message')
+		
+		if name and email and message:
+			contact_msg = ContactMessage(
+				name=name,
+				email=email,
+				message=message
+			)
+			db.session.add(contact_msg)
+			db.session.commit()
+			flash('Thank you for contacting us! We will get back to you soon.', 'success')
+			return redirect(url_for('contact'))
+		else:
+			flash('Please fill in all fields.', 'danger')
+	
 	return render_template('contact.html')
 
 @app.route('/features')
@@ -255,12 +284,18 @@ def admin_dashboard():
 	pending_insurer_count = InsurerRequest.query.filter_by(status='pending').count()
 	pending_regulator_count = RegulatorRequest.query.filter_by(status='pending').count()
 	
+	# Get unread contact messages
+	unread_messages = ContactMessage.query.filter_by(read=False).order_by(ContactMessage.submitted_at.desc()).limit(5).all()
+	total_unread_messages = ContactMessage.query.filter_by(read=False).count()
+	
 	return render_template('admin/admindashboard.html', 
 						   customers=customers, 
 						   insurers=insurers, 
 						   regulators=regulators,
 						   pending_count=pending_insurer_count,
-						   pending_regulator_count=pending_regulator_count)
+						   pending_regulator_count=pending_regulator_count,
+						   unread_messages=unread_messages,
+						   total_unread_messages=total_unread_messages)
 
 @app.route('/admin/search')
 @login_required
@@ -550,6 +585,38 @@ def edit_user(user_type, user_id):
 		return redirect(url_for('user_management'))
 	
 	return render_template('admin/edituser.html', user=user, user_type=user_type)
+
+@app.route('/admin/contact-messages')
+@login_required
+@admin_required
+def admin_contact_messages():
+	"""View all contact form submissions"""
+	messages = ContactMessage.query.order_by(ContactMessage.submitted_at.desc()).all()
+	return render_template('admin/contact_messages.html', messages=messages)
+
+@app.route('/admin/contact-messages/<int:message_id>/mark-read', methods=['POST'])
+@login_required
+@admin_required
+def mark_message_read(message_id):
+	"""Mark a contact message as read"""
+	message = ContactMessage.query.get_or_404(message_id)
+	message.read = True
+	message.read_by = current_user.id
+	message.read_at = datetime.utcnow()
+	db.session.commit()
+	flash('Message marked as read.', 'success')
+	return redirect(url_for('admin_contact_messages'))
+
+@app.route('/admin/contact-messages/<int:message_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_contact_message(message_id):
+	"""Delete a contact message"""
+	message = ContactMessage.query.get_or_404(message_id)
+	db.session.delete(message)
+	db.session.commit()
+	flash('Message deleted successfully.', 'success')
+	return redirect(url_for('admin_contact_messages'))
 
 @app.route('/admin/reports-and-insights')
 @login_required
@@ -1062,7 +1129,78 @@ def admin_view_claim_detail(claim_id):
 @login_required
 @customer_required
 def customer_dashboard():
-	return render_template('customer/customerashboard.html')
+	# Get customer's owned policies (by email)
+	owned_policies = Policy.query.filter_by(email_address=current_user.email).order_by(
+		Policy.date_entered.desc()
+	).all()
+	
+	# Get monitored policies
+	monitored = CustomerMonitoredPolicy.query.filter_by(customer_id=current_user.id).all()
+	monitored_policy_ids = [m.policy_id for m in monitored]
+	monitored_policies = Policy.query.filter(Policy.id.in_(monitored_policy_ids)).all() if monitored_policy_ids else []
+	
+	# Combine for total count
+	all_policies = owned_policies + monitored_policies
+	total_policies = len(all_policies)
+	
+	# Get active policies (not expired)
+	active_owned = [p for p in owned_policies if p.expiry_date and p.expiry_date >= datetime.now().date() and p.status == 'Active']
+	active_policies = len(active_owned)
+	
+	# Get expiring soon (within 30 days)
+	thirty_days = datetime.now().date() + timedelta(days=30)
+	expiring_soon = [p for p in owned_policies if p.expiry_date and datetime.now().date() <= p.expiry_date <= thirty_days and p.status == 'Active']
+	expiring_soon_count = len(expiring_soon)
+	
+	# Get customer's claims
+	owned_policy_ids = [p.id for p in owned_policies]
+	total_claims = Claim.query.filter(Claim.policy_id.in_(owned_policy_ids)).count() if owned_policy_ids else 0
+	pending_claims = Claim.query.filter(
+		Claim.policy_id.in_(owned_policy_ids),
+		Claim.status == 'Pending'
+	).count() if owned_policy_ids else 0
+	
+	# Get recent claims
+	recent_claims = Claim.query.filter(
+		Claim.policy_id.in_(owned_policy_ids)
+	).order_by(Claim.date_submitted.desc()).limit(5).all() if owned_policy_ids else []
+	
+	# Get pending requests
+	pending_access_requests = CustomerPolicyRequest.query.filter_by(
+		customer_id=current_user.id,
+		status='pending'
+	).count()
+	
+	pending_cancellation_requests = PolicyCancellationRequest.query.filter_by(
+		customer_id=current_user.id,
+		status='pending'
+	).count()
+	
+	pending_renewal_requests = PolicyRenewalRequest.query.filter_by(
+		customer_id=current_user.id,
+		status='pending'
+	).count()
+	
+	total_pending_requests = pending_access_requests + pending_cancellation_requests + pending_renewal_requests
+	
+	# Calculate total premium for active policies
+	total_premium = sum(p.premium_amount for p in active_owned)
+	
+	return render_template('customer/customerashboard.html',
+						   owned_policies=owned_policies[:5],  # Recent 5
+						   monitored_policies=monitored_policies[:5],  # Recent 5
+						   total_policies=total_policies,
+						   active_policies=active_policies,
+						   expiring_soon_count=expiring_soon_count,
+						   total_claims=total_claims,
+						   pending_claims=pending_claims,
+						   recent_claims=recent_claims,
+						   total_premium=total_premium,
+						   pending_access_requests=pending_access_requests,
+						   pending_cancellation_requests=pending_cancellation_requests,
+						   pending_renewal_requests=pending_renewal_requests,
+						   total_pending_requests=total_pending_requests,
+						   now=datetime.now())
 
 @app.route('/customer/search')
 @login_required

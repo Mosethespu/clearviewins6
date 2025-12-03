@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+{% block title %}{{ post.title }} - ClearView Insurance Blog{% endblock %}
+{% block content %}
+<div class="container py-5" style="min-height: calc(100vh - 120px);">
+	<div class="row justify-content-center">
+		<div class="col-lg-8">
+			<!-- Back button -->
+			<a href="{{ url_for('blog') }}" class="btn btn-outline-primary mb-4">
+				<i class="bi bi-arrow-left"></i> Back to Blog
+			</a>
+
+			<!-- Blog post card -->
+			<article class="card shadow-sm">
+				{% if post.featured_image %}
+				<img src="{{ url_for('static', filename='img/blog/' + post.featured_image) }}" 
+					 class="card-img-top" alt="{{ post.title }}" style="max-height: 400px; object-fit: cover;">
+				{% endif %}
+				
+				<div class="card-body p-4 p-md-5">
+					<h1 class="display-5 fw-bold text-primary mb-3">{{ post.title }}</h1>
+					
+					<!-- Meta information -->
+					<div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
+						<div>
+							<small class="text-muted">
+								<i class="bi bi-person-circle"></i> By {{ post.author.username }}
+							</small>
+						</div>
+						<div class="text-end">
+							<small class="text-muted d-block">
+								<i class="bi bi-calendar3"></i> {{ post.created_at.strftime('%B %d, %Y') }}
+							</small>
+							<small class="text-muted">
+								<i class="bi bi-eye"></i> {{ post.views }} views
+							</small>
+						</div>
+					</div>
+
+					<!-- Excerpt -->
+					<div class="lead text-muted mb-4">
+						{{ post.excerpt }}
+					</div>
+
+					<!-- Content -->
+					<div class="blog-content">
+						{{ post.content|safe }}
+					</div>
+
+					<!-- Updated date if different from created -->
+					{% if post.updated_at and post.updated_at != post.created_at %}
+					<div class="mt-5 pt-3 border-top">
+						<small class="text-muted">
+							<i class="bi bi-pencil-square"></i> Last updated: {{ post.updated_at.strftime('%B %d, %Y at %I:%M %p') }}
+						</small>
+					</div>
+					{% endif %}
+				</div>
+			</article>
+
+			<!-- Back button at bottom -->
+			<div class="mt-4 text-center">
+				<a href="{{ url_for('blog') }}" class="btn btn-primary">
+					<i class="bi bi-arrow-left"></i> Back to All Posts
+				</a>
+			</div>
+		</div>
+	</div>
+</div>
+
+<style>
+.blog-content {
+	font-size: 1.1rem;
+	line-height: 1.8;
+	color: #333;
+}
+
+.blog-content h2 {
+	color: #0d6efd;
+	margin-top: 2rem;
+	margin-bottom: 1rem;
+	font-weight: 600;
+}
+
+.blog-content h3 {
+	color: #495057;
+	margin-top: 1.5rem;
+	margin-bottom: 0.75rem;
+	font-weight: 600;
+}
+
+.blog-content p {
+	margin-bottom: 1.2rem;
+}
+
+.blog-content ul, .blog-content ol {
+	margin-bottom: 1.2rem;
+	padding-left: 2rem;
+}
+
+.blog-content li {
+	margin-bottom: 0.5rem;
+}
+
+.blog-content img {
+	max-width: 100%;
+	height: auto;
+	border-radius: 0.5rem;
+	margin: 1.5rem 0;
+}
+
+.blog-content blockquote {
+	border-left: 4px solid #0d6efd;
+	padding-left: 1rem;
+	margin: 1.5rem 0;
+	font-style: italic;
+	color: #6c757d;
+}
+
+.blog-content code {
+	background-color: #f8f9fa;
+	padding: 0.2rem 0.4rem;
+	border-radius: 0.25rem;
+	font-size: 0.9rem;
+}
+
+.blog-content pre {
+	background-color: #f8f9fa;
+	padding: 1rem;
+	border-radius: 0.5rem;
+	overflow-x: auto;
+}
+</style>
+{% endblock %}

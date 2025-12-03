@@ -388,3 +388,36 @@ class PolicyRenewalRequest(db.Model):
 	policy = db.relationship('Policy', backref='renewal_requests')
 	reviewer = db.relationship('Insurer', backref='reviewed_renewal_requests')
 
+
+class BlogPost(db.Model):
+	"""Blog posts created by admins"""
+	id = db.Column(db.Integer, primary_key=True)
+	title = db.Column(db.String(200), nullable=False)
+	slug = db.Column(db.String(250), unique=True, nullable=False)  # URL-friendly title
+	excerpt = db.Column(db.Text, nullable=False)  # Short summary for cards
+	content = db.Column(db.Text, nullable=False)  # Full blog content
+	author_id = db.Column(db.Integer, db.ForeignKey('admin.id'), nullable=False)
+	created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+	updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+	published = db.Column(db.Boolean, default=False, nullable=False)
+	featured_image = db.Column(db.String(255), nullable=True)  # Path to image
+	views = db.Column(db.Integer, default=0, nullable=False)
+	
+	# Relationships
+	author = db.relationship('Admin', backref='blog_posts')
+
+
+class ContactMessage(db.Model):
+	"""Contact form submissions"""
+	id = db.Column(db.Integer, primary_key=True)
+	name = db.Column(db.String(150), nullable=False)
+	email = db.Column(db.String(150), nullable=False)
+	message = db.Column(db.Text, nullable=False)
+	submitted_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+	read = db.Column(db.Boolean, default=False, nullable=False)
+	read_by = db.Column(db.Integer, db.ForeignKey('admin.id'), nullable=True)
+	read_at = db.Column(db.DateTime, nullable=True)
+	
+	# Relationship
+	reader = db.relationship('Admin', backref='read_contact_messages')
+

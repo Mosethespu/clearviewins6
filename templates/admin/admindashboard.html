@@ -23,6 +23,14 @@
 							<span class="badge bg-danger">{{ pending_regulator_count }}</span>
 						{% endif %}
 					</a>
+					<a class="btn btn-outline-primary sidebar-btn position-relative" href="{{ url_for('admin_contact_messages') }}">
+						<i class="bi bi-envelope"></i> Contact Messages
+						{% if total_unread_messages > 0 %}
+							<span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+								{{ total_unread_messages }}
+							</span>
+						{% endif %}
+					</a>
 					<a class="btn btn-outline-primary sidebar-btn" href="{{ url_for('admin_view_policies') }}">View All Policies</a>
 					<a class="btn btn-outline-primary sidebar-btn" href="{{ url_for('admin_view_claims') }}">View All Claims</a>
 					<a class="btn btn-outline-primary sidebar-btn" href="{{ url_for('admin_reports_and_insights') }}">Reports & Insights</a>
@@ -155,6 +163,34 @@
 						</div>
 					</div>
 				</div>
+
+				<!-- Contact Messages Section -->
+				{% if total_unread_messages > 0 %}
+				<div class="row g-3 mt-4">
+					<div class="col-12">
+						<div class="card shadow-sm border-danger">
+							<div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
+								<h6 class="mb-0"><i class="bi bi-envelope"></i> Unread Contact Messages</h6>
+								<a href="{{ url_for('admin_contact_messages') }}" class="btn btn-sm btn-light">View All</a>
+							</div>
+							<div class="card-body">
+								<div class="list-group list-group-flush">
+									{% for message in unread_messages %}
+									<div class="list-group-item">
+										<div class="d-flex w-100 justify-content-between">
+											<h6 class="mb-1">{{ message.name }} <span class="badge bg-danger">New</span></h6>
+											<small class="text-muted">{{ message.submitted_at.strftime('%b %d, %Y') }}</small>
+										</div>
+										<p class="mb-1"><small class="text-muted"><i class="bi bi-envelope"></i> {{ message.email }}</small></p>
+										<p class="mb-0">{{ message.message[:100] }}{% if message.message|length > 100 %}...{% endif %}</p>
+									</div>
+									{% endfor %}
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+				{% endif %}
 
 				<!-- Metrics row -->
 				<div class="row g-3 mt-3">
