@@ -1,68 +1,270 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
+
+{% block title %}Search - ClearView Insurance{% endblock %}
+
 {% block content %}
 <div class="container-fluid py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3 class="fw-bold mb-0">Search</h3>
-        <a href="{{ url_for('customer_dashboard') }}" class="btn btn-outline-secondary">
-            <i class="bi bi-arrow-left"></i> Back to Dashboard
-        </a>
-    </div>
+	<div class="row">
+		<!-- Sidebar -->
+		<aside class="col-12 col-md-3 col-lg-2 mb-4 mb-md-0">
+			<div class="dashboard-sidebar p-3 bg-light rounded shadow-sm">
+				<h6 class="text-uppercase text-muted mb-3">User Options</h6>
+				<div class="d-grid gap-2">
+					<a class="btn btn-outline-primary sidebar-btn" href="{{ url_for('customer_dashboard') }}">
+						<i class="bi bi-house"></i> Dashboard
+					</a>
+					<a class="btn btn-primary sidebar-btn" href="{{ url_for('customer_search') }}">
+						<i class="bi bi-search"></i> Search
+					</a>
+					<a class="btn btn-outline-primary sidebar-btn" href="#">Policies Management</a>
+					<a class="btn btn-outline-primary sidebar-btn" href="#">Claims Management</a>
+					<a class="btn btn-outline-primary sidebar-btn" href="{{ url_for('customer_search_vehicle') }}">Search Vehicle</a>
+					<a class="btn btn-outline-primary sidebar-btn" href="{{ url_for('customer_reports_and_insights') }}">Reports & Insights</a>
+				</div>
+			</div>
+		</aside>
 
-    <div class="row justify-content-center">
-        <div class="col-md-10 col-lg-8">
-            <div class="card shadow-sm">
-                <div class="card-body p-4">
-                    <form method="GET" action="{{ url_for('customer_search') }}">
-                        <div class="input-group input-group-lg mb-4">
-                            <input type="text" class="form-control" name="q" placeholder="Search policies, claims, vehicles, drivers..." value="{{ request.args.get('q', '') }}">
-                            <button class="btn btn-primary" type="submit">
-                                <i class="bi bi-search"></i> Search
-                            </button>
-                        </div>
-                    </form>
+		<!-- Main content -->
+		<main class="col-12 col-md-9 col-lg-10">
+			<div class="px-2 px-md-3">
+				<h2 class="mb-4"><i class="bi bi-search"></i> Search Your Information</h2>
 
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-6">
-                            <div class="card bg-light h-100">
-                                <div class="card-body">
-                                    <h6 class="card-title">Quick Filters</h6>
-                                    <div class="d-flex flex-wrap gap-2">
-                                        <span class="badge bg-primary">My Policies</span>
-                                        <span class="badge bg-info">My Claims</span>
-                                        <span class="badge bg-warning">My Vehicles</span>
-                                        <span class="badge bg-success">Documents</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="card bg-light h-100">
-                                <div class="card-body">
-                                    <h6 class="card-title">Search Tips</h6>
-                                    <ul class="small mb-0">
-                                        <li>Search by policy number</li>
-                                        <li>Search by vehicle registration</li>
-                                        <li>Search by claim ID</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+				<!-- Search Form -->
+				<div class="card shadow-sm mb-4">
+					<div class="card-body">
+						<form method="GET" action="{{ url_for('customer_search') }}" class="row g-3">
+							<div class="col-md-8">
+								<input type="text" class="form-control form-control-lg" name="q" 
+									   placeholder="Search your policies, claims, quotes, or companies..." 
+									   value="{{ query or '' }}" required>
+							</div>
+							<div class="col-md-2">
+								<select class="form-select form-select-lg" name="type">
+									<option value="all" {% if search_type == 'all' %}selected{% endif %}>All</option>
+									<option value="policies" {% if search_type == 'policies' %}selected{% endif %}>Policies</option>
+									<option value="claims" {% if search_type == 'claims' %}selected{% endif %}>Claims</option>
+									<option value="quotes" {% if search_type == 'quotes' %}selected{% endif %}>Quotes</option>
+									<option value="companies" {% if search_type == 'companies' %}selected{% endif %}>Companies</option>
+								</select>
+							</div>
+							<div class="col-md-2">
+								<button type="submit" class="btn btn-primary btn-lg w-100">
+									<i class="bi bi-search"></i> Search
+								</button>
+							</div>
+						</form>
+					</div>
+				</div>
 
-                    {% if request.args.get('q') %}
-                    <div class="alert alert-info">
-                        <i class="bi bi-info-circle"></i> Search functionality coming soon. Your search for "<strong>{{ request.args.get('q') }}</strong>" will be processed here.
-                    </div>
-                    {% else %}
-                    <div class="text-center text-muted py-5">
-                        <i class="bi bi-search" style="font-size: 3rem;"></i>
-                        <p class="mt-3">Enter a search query to find your policies, claims, vehicles, and more.</p>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
+				{% if query %}
+					<!-- Results Summary -->
+					<div class="alert alert-info">
+						<i class="bi bi-info-circle"></i> 
+						Found <strong>{{ total_results }}</strong> result(s) for "<strong>{{ query }}</strong>"
+						{% if search_type != 'all' %}in <strong>{{ search_type }}</strong>{% endif %}
+					</div>
+
+					<!-- Policies Results -->
+					{% if results.policies %}
+					<div class="card shadow-sm mb-4">
+						<div class="card-header bg-primary text-white">
+							<h5 class="mb-0"><i class="bi bi-file-text"></i> Your Policies ({{ results.policies|length }})</h5>
+						</div>
+						<div class="card-body p-0">
+							<div class="table-responsive">
+								<table class="table table-hover mb-0">
+									<thead class="table-light">
+										<tr>
+											<th>Policy Number</th>
+											<th>Insured Name</th>
+											<th>Vehicle</th>
+											<th>Registration</th>
+											<th>Company</th>
+											<th>Status</th>
+											<th>Effective Date</th>
+											<th>Premium</th>
+										</tr>
+									</thead>
+									<tbody>
+										{% for policy in results.policies %}
+										<tr>
+											<td><strong>{{ policy.policy_number }}</strong></td>
+											<td>{{ policy.insured_name }}</td>
+											<td>{{ policy.vehicle_make }} {{ policy.vehicle_model }}</td>
+											<td>{{ policy.registration_number }}</td>
+											<td>{{ policy.insurance_company.name if policy.insurance_company else 'N/A' }}</td>
+											<td>
+												{% if policy.status == 'Active' %}
+													<span class="badge bg-success">{{ policy.status }}</span>
+												{% elif policy.status == 'Expired' %}
+													<span class="badge bg-secondary">{{ policy.status }}</span>
+												{% else %}
+													<span class="badge bg-danger">{{ policy.status }}</span>
+												{% endif %}
+											</td>
+											<td>{{ policy.effective_date.strftime('%Y-%m-%d') if policy.effective_date else 'N/A' }}</td>
+											<td>KES {{ "{:,.2f}".format(policy.premium_amount) if policy.premium_amount else '0.00' }}</td>
+										</tr>
+										{% endfor %}
+									</tbody>
+								</table>
+							</div>
+						</div>
+					</div>
+					{% endif %}
+
+					<!-- Claims Results -->
+					{% if results.claims %}
+					<div class="card shadow-sm mb-4">
+						<div class="card-header bg-danger text-white">
+							<h5 class="mb-0"><i class="bi bi-file-earmark-medical"></i> Your Claims ({{ results.claims|length }})</h5>
+						</div>
+						<div class="card-body p-0">
+							<div class="table-responsive">
+								<table class="table table-hover mb-0">
+									<thead class="table-light">
+										<tr>
+											<th>Claim Number</th>
+											<th>Policy Number</th>
+											<th>Accident Date</th>
+											<th>Location</th>
+											<th>Status</th>
+											<th>Date Submitted</th>
+										</tr>
+									</thead>
+									<tbody>
+										{% for claim in results.claims %}
+										<tr>
+											<td><strong>{{ claim.claim_number }}</strong></td>
+											<td>{{ claim.policy.policy_number if claim.policy else 'N/A' }}</td>
+											<td>{{ claim.accident_date.strftime('%Y-%m-%d') if claim.accident_date else 'N/A' }}</td>
+											<td>{{ claim.accident_location }}</td>
+											<td>
+												{% if claim.status == 'Approved' %}
+													<span class="badge bg-success">{{ claim.status }}</span>
+												{% elif claim.status == 'Pending' %}
+													<span class="badge bg-warning text-dark">{{ claim.status }}</span>
+												{% elif claim.status == 'Under Review' %}
+													<span class="badge bg-info">{{ claim.status }}</span>
+												{% else %}
+													<span class="badge bg-danger">{{ claim.status }}</span>
+												{% endif %}
+											</td>
+											<td>{{ claim.date_submitted.strftime('%Y-%m-%d %H:%M') if claim.date_submitted else 'N/A' }}</td>
+										</tr>
+										{% endfor %}
+									</tbody>
+								</table>
+							</div>
+						</div>
+					</div>
+					{% endif %}
+
+					<!-- Quotes Results -->
+					{% if results.quotes %}
+					<div class="card shadow-sm mb-4">
+						<div class="card-header bg-success text-white">
+							<h5 class="mb-0"><i class="bi bi-receipt"></i> Your Quotes ({{ results.quotes|length }})</h5>
+						</div>
+						<div class="card-body p-0">
+							<div class="table-responsive">
+								<table class="table table-hover mb-0">
+									<thead class="table-light">
+										<tr>
+											<th>Quote Number</th>
+											<th>Vehicle</th>
+											<th>Registration</th>
+											<th>Coverage Type</th>
+											<th>Premium</th>
+											<th>Status</th>
+											<th>Created Date</th>
+										</tr>
+									</thead>
+									<tbody>
+										{% for quote in results.quotes %}
+										<tr>
+											<td><strong>{{ quote.quote_number }}</strong></td>
+											<td>{{ quote.vehicle_make }} {{ quote.vehicle_model }}</td>
+											<td>{{ quote.registration_number }}</td>
+											<td>{{ quote.coverage_type }}</td>
+											<td>KES {{ "{:,.2f}".format(quote.premium_amount) if quote.premium_amount else '0.00' }}</td>
+											<td>
+												{% if quote.status == 'Converted' %}
+													<span class="badge bg-success">{{ quote.status }}</span>
+												{% elif quote.status == 'Sent' %}
+													<span class="badge bg-info">{{ quote.status }}</span>
+												{% else %}
+													<span class="badge bg-secondary">{{ quote.status }}</span>
+												{% endif %}
+											</td>
+											<td>{{ quote.created_date.strftime('%Y-%m-%d %H:%M') if quote.created_date else 'N/A' }}</td>
+										</tr>
+										{% endfor %}
+									</tbody>
+								</table>
+							</div>
+						</div>
+					</div>
+					{% endif %}
+
+					<!-- Companies Results -->
+					{% if results.companies %}
+					<div class="card shadow-sm mb-4">
+						<div class="card-header bg-warning text-dark">
+							<h5 class="mb-0"><i class="bi bi-building"></i> Insurance Companies ({{ results.companies|length }})</h5>
+						</div>
+						<div class="card-body p-0">
+							<div class="table-responsive">
+								<table class="table table-hover mb-0">
+									<thead class="table-light">
+										<tr>
+											<th>Company Name</th>
+											<th>Status</th>
+										</tr>
+									</thead>
+									<tbody>
+										{% for company in results.companies %}
+										<tr>
+											<td><strong>{{ company.name }}</strong></td>
+											<td>
+												{% if company.is_active %}
+													<span class="badge bg-success">Active</span>
+												{% else %}
+													<span class="badge bg-secondary">Inactive</span>
+												{% endif %}
+											</td>
+										</tr>
+										{% endfor %}
+									</tbody>
+								</table>
+							</div>
+						</div>
+					</div>
+					{% endif %}
+
+					<!-- No Results Message -->
+					{% if total_results == 0 %}
+					<div class="card shadow-sm">
+						<div class="card-body text-center py-5">
+							<i class="bi bi-search text-muted" style="font-size: 4rem;"></i>
+							<h4 class="mt-3 text-muted">No results found</h4>
+							<p class="text-muted">Try searching with different keywords or check the search category filter.</p>
+						</div>
+					</div>
+					{% endif %}
+				{% else %}
+					<!-- Empty State -->
+					<div class="card shadow-sm">
+						<div class="card-body text-center py-5">
+							<i class="bi bi-search text-primary" style="font-size: 4rem;"></i>
+							<h4 class="mt-3">Search Your Information</h4>
+							<p class="text-muted">Enter keywords to search your policies, claims, quotes, or insurance companies.</p>
+						</div>
+					</div>
+				{% endif %}
+			</div>
+		</main>
+	</div>
 </div>
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">

@@ -1,0 +1,340 @@
+{% extends "base.html" %}
+
+{% block title %}Reports & Insights - ClearView Insurance{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+	<!-- Header -->
+	<div class="row mb-4">
+		<div class="col-md-6">
+			<h2><i class="bi bi-graph-up"></i> System Reports & Insights</h2>
+			<p class="text-muted">Comprehensive system-wide analytics and statistics</p>
+		</div>
+		<div class="col-md-6 text-end">
+			<div class="btn-group" role="group">
+				<button type="button" class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown">
+					<i class="bi bi-download"></i> Export CSV
+				</button>
+				<ul class="dropdown-menu">
+					<li><a class="dropdown-item" href="{{ url_for('admin_export_reports_csv', type='summary') }}">Summary Report</a></li>
+					<li><a class="dropdown-item" href="{{ url_for('admin_export_reports_csv', type='companies') }}">Companies Data</a></li>
+					<li><a class="dropdown-item" href="{{ url_for('admin_export_reports_csv', type='users') }}">Users Data</a></li>
+					<li><a class="dropdown-item" href="{{ url_for('admin_export_reports_csv', type='policies') }}">Policies Data</a></li>
+					<li><a class="dropdown-item" href="{{ url_for('admin_export_reports_csv', type='claims') }}">Claims Data</a></li>
+				</ul>
+			</div>
+			<a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary ms-2">
+				<i class="bi bi-house"></i> Dashboard
+			</a>
+		</div>
+	</div>
+
+	<!-- System Overview Summary -->
+	<div class="row mb-4">
+		<div class="col-12">
+			<div class="card shadow-sm border-primary">
+				<div class="card-header bg-primary text-white">
+					<h4 class="mb-0"><i class="bi bi-speedometer2"></i> System Overview</h4>
+				</div>
+				<div class="card-body">
+					<div class="row g-3">
+						<!-- Users Summary -->
+						<div class="col-md-3">
+							<div class="card bg-light h-100">
+								<div class="card-body text-center">
+									<i class="bi bi-people text-primary" style="font-size: 2rem;"></i>
+									<h3 class="mt-2 mb-0">{{ total_customers + total_insurers + total_regulators }}</h3>
+									<p class="text-muted mb-1">Total Users</p>
+									<small class="text-muted">
+										<i class="bi bi-person"></i> {{ total_customers }} Customers<br>
+										<i class="bi bi-briefcase"></i> {{ approved_insurers }}/{{ total_insurers }} Insurers<br>
+										<i class="bi bi-shield-check"></i> {{ approved_regulators }}/{{ total_regulators }} Regulators
+									</small>
+								</div>
+							</div>
+						</div>
+						<!-- Policies Summary -->
+						<div class="col-md-3">
+							<div class="card bg-light h-100">
+								<div class="card-body text-center">
+									<i class="bi bi-file-earmark-text text-info" style="font-size: 2rem;"></i>
+									<h3 class="mt-2 mb-0">{{ total_policies }}</h3>
+									<p class="text-muted mb-1">Total Policies</p>
+									<small class="text-success"><i class="bi bi-check-circle"></i> {{ active_policies }} Active</small>
+								</div>
+							</div>
+						</div>
+						<!-- Premium Summary -->
+						<div class="col-md-3">
+							<div class="card bg-light h-100">
+								<div class="card-body text-center">
+									<i class="bi bi-currency-exchange text-success" style="font-size: 2rem;"></i>
+									<h3 class="mt-2 mb-0">KES {{ "{:,.0f}".format(total_premium) }}</h3>
+									<p class="text-muted mb-0">Total Active Premium</p>
+								</div>
+							</div>
+						</div>
+						<!-- Claims Summary -->
+						<div class="col-md-3">
+							<div class="card bg-light h-100">
+								<div class="card-body text-center">
+									<i class="bi bi-file-earmark-medical text-warning" style="font-size: 2rem;"></i>
+									<h3 class="mt-2 mb-0">{{ total_claims }}</h3>
+									<p class="text-muted mb-1">Total Claims</p>
+									<small class="text-success"><i class="bi bi-check-circle"></i> {{ approved_claims }} Approved</small>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Detailed Statistics -->
+	<div class="row mb-4">
+		<div class="col-lg-6 mb-3">
+			<div class="card shadow-sm h-100">
+				<div class="card-header bg-info text-white">
+					<h5 class="mb-0"><i class="bi bi-file-earmark-text"></i> Policy Breakdown</h5>
+				</div>
+				<div class="card-body">
+					<table class="table table-hover mb-0">
+						<thead>
+							<tr>
+								<th>Status</th>
+								<th class="text-end">Count</th>
+								<th class="text-end">Percentage</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td><span class="badge bg-success">Active</span></td>
+								<td class="text-end">{{ active_policies }}</td>
+								<td class="text-end">{{ "{:.1f}".format((active_policies / total_policies * 100) if total_policies else 0) }}%</td>
+							</tr>
+							<tr>
+								<td><span class="badge bg-secondary">Expired</span></td>
+								<td class="text-end">{{ expired_policies }}</td>
+								<td class="text-end">{{ "{:.1f}".format((expired_policies / total_policies * 100) if total_policies else 0) }}%</td>
+							</tr>
+							<tr>
+								<td><span class="badge bg-danger">Cancelled</span></td>
+								<td class="text-end">{{ cancelled_policies }}</td>
+								<td class="text-end">{{ "{:.1f}".format((cancelled_policies / total_policies * 100) if total_policies else 0) }}%</td>
+							</tr>
+							<tr class="table-primary fw-bold">
+								<td>Total</td>
+								<td class="text-end">{{ total_policies }}</td>
+								<td class="text-end">100%</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+
+		<div class="col-lg-6 mb-3">
+			<div class="card shadow-sm h-100">
+				<div class="card-header bg-warning text-dark">
+					<h5 class="mb-0"><i class="bi bi-file-earmark-medical"></i> Claims Breakdown</h5>
+				</div>
+				<div class="card-body">
+					<table class="table table-hover mb-0">
+						<thead>
+							<tr>
+								<th>Status</th>
+								<th class="text-end">Count</th>
+								<th class="text-end">Percentage</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td><span class="badge bg-warning text-dark">Pending</span></td>
+								<td class="text-end">{{ pending_claims }}</td>
+								<td class="text-end">{{ "{:.1f}".format((pending_claims / total_claims * 100) if total_claims else 0) }}%</td>
+							</tr>
+							<tr>
+								<td><span class="badge bg-info">Under Review</span></td>
+								<td class="text-end">{{ under_review_claims }}</td>
+								<td class="text-end">{{ "{:.1f}".format((under_review_claims / total_claims * 100) if total_claims else 0) }}%</td>
+							</tr>
+							<tr>
+								<td><span class="badge bg-success">Approved</span></td>
+								<td class="text-end">{{ approved_claims }}</td>
+								<td class="text-end">{{ "{:.1f}".format((approved_claims / total_claims * 100) if total_claims else 0) }}%</td>
+							</tr>
+							<tr>
+								<td><span class="badge bg-danger">Rejected</span></td>
+								<td class="text-end">{{ rejected_claims }}</td>
+								<td class="text-end">{{ "{:.1f}".format((rejected_claims / total_claims * 100) if total_claims else 0) }}%</td>
+							</tr>
+							<tr class="table-warning fw-bold">
+								<td>Total</td>
+								<td class="text-end">{{ total_claims }}</td>
+								<td class="text-end">100%</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Quotes Performance -->
+	<div class="row mb-4">
+		<div class="col-12">
+			<div class="card shadow-sm">
+				<div class="card-header bg-success text-white">
+					<h5 class="mb-0"><i class="bi bi-file-earmark-text"></i> Quote Performance</h5>
+				</div>
+				<div class="card-body">
+					<div class="row">
+						<div class="col-md-3 text-center mb-3">
+							<h4>{{ total_quotes }}</h4>
+							<p class="text-muted mb-0">Total Quotes</p>
+						</div>
+						<div class="col-md-3 text-center mb-3">
+							<h4>{{ sent_quotes }}</h4>
+							<p class="text-muted mb-0">Sent</p>
+						</div>
+						<div class="col-md-3 text-center mb-3">
+							<h4>{{ converted_quotes }}</h4>
+							<p class="text-muted mb-0">Converted</p>
+						</div>
+						<div class="col-md-3 text-center mb-3">
+							<h4 class="text-success">{{ "{:.1f}".format(quote_conversion_rate) }}%</h4>
+							<p class="text-muted mb-0">Conversion Rate</p>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Pending Approvals -->
+	<div class="row mb-4">
+		<div class="col-md-6 mb-3">
+			<div class="card shadow-sm h-100">
+				<div class="card-header bg-warning text-dark">
+					<h5 class="mb-0"><i class="bi bi-clock-history"></i> Pending Approvals</h5>
+				</div>
+				<div class="card-body">
+					<div class="d-flex justify-content-between align-items-center mb-3">
+						<span><i class="bi bi-briefcase"></i> Insurer Requests</span>
+						<span class="badge bg-warning fs-5">{{ pending_insurer_requests }}</span>
+					</div>
+					<div class="d-flex justify-content-between align-items-center">
+						<span><i class="bi bi-shield-check"></i> Regulator Requests</span>
+						<span class="badge bg-warning fs-5">{{ pending_regulator_requests }}</span>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="col-md-6 mb-3">
+			<div class="card shadow-sm h-100">
+				<div class="card-header bg-secondary text-white">
+					<h5 class="mb-0"><i class="bi bi-building"></i> System Statistics</h5>
+				</div>
+				<div class="card-body">
+					<div class="d-flex justify-content-between align-items-center mb-3">
+						<span><i class="bi bi-building"></i> Active Companies</span>
+						<span class="badge bg-secondary fs-5">{{ total_companies }}</span>
+					</div>
+					<div class="d-flex justify-content-between align-items-center">
+						<span><i class="bi bi-people"></i> Active Users</span>
+						<span class="badge bg-secondary fs-5">{{ active_customers + approved_insurers + approved_regulators }}</span>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Company Rankings -->
+	<div class="row mb-4">
+		<div class="col-12">
+			<div class="card shadow-sm">
+				<div class="card-header bg-dark text-white">
+					<h5 class="mb-0"><i class="bi bi-trophy"></i> Insurance Company Rankings</h5>
+				</div>
+				<div class="card-body">
+					<div class="table-responsive">
+						<table class="table table-hover">
+							<thead>
+								<tr>
+									<th>#</th>
+									<th>Company Name</th>
+									<th class="text-center">Active Policies</th>
+									<th class="text-end">Total Premium (KES)</th>
+									<th class="text-center">Approved Claims</th>
+									<th class="text-center">Staff Count</th>
+								</tr>
+							</thead>
+							<tbody>
+								{% for company in company_rankings %}
+								<tr>
+									<td>{{ loop.index }}</td>
+									<td>{{ company.name }}</td>
+									<td class="text-center">{{ company.active_policies }}</td>
+									<td class="text-end">{{ "{:,.2f}".format(company.total_premium) }}</td>
+									<td class="text-center">{{ company.approved_claims }}</td>
+									<td class="text-center">{{ company.staff_count }}</td>
+								</tr>
+								{% endfor %}
+							</tbody>
+						</table>
+					</div>
+					<div class="alert alert-info mt-3 mb-0">
+						<i class="bi bi-info-circle"></i> <strong>Note:</strong> Rankings are based on active policies count.
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- User Activity -->
+	<div class="row mb-4">
+		<div class="col-12">
+			<div class="card shadow-sm">
+				<div class="card-header bg-primary text-white">
+					<h5 class="mb-0"><i class="bi bi-activity"></i> Top Insurer Activity</h5>
+				</div>
+				<div class="card-body">
+					<div class="table-responsive">
+						<table class="table table-hover">
+							<thead>
+								<tr>
+									<th>Username</th>
+									<th>Email</th>
+									<th>Company</th>
+									<th class="text-center">Policies Created</th>
+									<th class="text-center">Claims Processed</th>
+									<th class="text-center">Quotes Generated</th>
+								</tr>
+							</thead>
+							<tbody>
+								{% for user in user_activity[:10] %}
+								<tr>
+									<td>{{ user.username }}</td>
+									<td>{{ user.email }}</td>
+									<td>{{ user.company }}</td>
+									<td class="text-center">{{ user.policies_created }}</td>
+									<td class="text-center">{{ user.claims_processed }}</td>
+									<td class="text-center">{{ user.quotes_generated }}</td>
+								</tr>
+								{% endfor %}
+								{% if not user_activity %}
+								<tr>
+									<td colspan="6" class="text-center text-muted">No activity data available</td>
+								</tr>
+								{% endif %}
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %}

@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}Search Vehicle - ClearView Insurance{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+	<div class="row">
+		<!-- Sidebar -->
+		<aside class="col-12 col-md-3 col-lg-2 mb-4 mb-md-0">
+			<div class="dashboard-sidebar p-3 bg-light rounded shadow-sm">
+				<h6 class="text-uppercase text-muted mb-3">User Options</h6>
+				<div class="d-grid gap-2">
+					<a class="btn btn-outline-primary sidebar-btn" href="{{ url_for('customer_dashboard') }}">
+						<i class="bi bi-house"></i> Dashboard
+					</a>
+					<a class="btn btn-outline-primary sidebar-btn" href="{{ url_for('customer_search') }}">
+						<i class="bi bi-search"></i> Search
+					</a>
+					<a class="btn btn-outline-primary sidebar-btn" href="#">Policies Management</a>
+					<a class="btn btn-outline-primary sidebar-btn" href="#">Claims Management</a>
+					<a class="btn btn-primary sidebar-btn" href="{{ url_for('customer_search_vehicle') }}">
+						<i class="bi bi-car-front"></i> Search Vehicle
+					</a>
+					<a class="btn btn-outline-primary sidebar-btn" href="{{ url_for('customer_reports_and_insights') }}">Reports & Insights</a>
+				</div>
+			</div>
+		</aside>
+
+		<!-- Main content -->
+		<main class="col-12 col-md-9 col-lg-10">
+			<div class="px-2 px-md-3">
+				<h2 class="mb-4"><i class="bi bi-car-front"></i> Search Vehicle by Registration Number</h2>
+
+				<!-- Search Form -->
+				<div class="row justify-content-center mb-5">
+					<div class="col-md-8">
+						<div class="card shadow-lg border-0">
+							<div class="card-body p-5">
+								<div class="text-center mb-4">
+									<i class="bi bi-car-front-fill text-primary" style="font-size: 4rem;"></i>
+									<h4 class="mt-3">Enter Vehicle Registration Number</h4>
+									<p class="text-muted">Search for vehicle information, policies, and claims history</p>
+								</div>
+
+								<form action="{{ url_for('customer_view_vehicle', registration_number='PLACEHOLDER') }}" method="GET" onsubmit="return redirectToVehicle(event)">
+									<div class="mb-4">
+										<label for="registration" class="form-label fw-bold">Registration Number (Number Plate)</label>
+										<input type="text" 
+											   class="form-control form-control-lg text-center text-uppercase" 
+											   id="registration" 
+											   name="registration"
+											   placeholder="e.g., KCA 123A, KDA 456B"
+											   style="font-size: 1.5rem; letter-spacing: 2px; font-weight: bold;"
+											   required
+											   pattern="[A-Za-z0-9\s]+"
+											   title="Enter a valid registration number">
+										<div class="form-text">Enter the vehicle's number plate exactly as it appears</div>
+									</div>
+
+									<div class="d-grid">
+										<button type="submit" class="btn btn-primary btn-lg">
+											<i class="bi bi-search"></i> Search Vehicle
+										</button>
+									</div>
+								</form>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Information Cards -->
+				<div class="row g-4">
+					<div class="col-md-4">
+						<div class="card shadow-sm h-100 border-primary">
+							<div class="card-body text-center">
+								<i class="bi bi-file-text text-primary" style="font-size: 2.5rem;"></i>
+								<h5 class="mt-3">Active Policies</h5>
+								<p class="text-muted mb-0">View current insurance coverage for the vehicle</p>
+							</div>
+						</div>
+					</div>
+					<div class="col-md-4">
+						<div class="card shadow-sm h-100 border-danger">
+							<div class="card-body text-center">
+								<i class="bi bi-file-earmark-medical text-danger" style="font-size: 2.5rem;"></i>
+								<h5 class="mt-3">Claims History</h5>
+								<p class="text-muted mb-0">Check if the vehicle has any past or active claims</p>
+							</div>
+						</div>
+					</div>
+					<div class="col-md-4">
+						<div class="card shadow-sm h-100 border-success">
+							<div class="card-body text-center">
+								<i class="bi bi-images text-success" style="font-size: 2.5rem;"></i>
+								<h5 class="mt-3">Vehicle Photos</h5>
+								<p class="text-muted mb-0">View photos of the vehicle and any incident damage</p>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Search Tips -->
+				<div class="card shadow-sm mt-4">
+					<div class="card-header bg-light">
+						<h5 class="mb-0"><i class="bi bi-lightbulb"></i> Search Tips</h5>
+					</div>
+					<div class="card-body">
+						<div class="row">
+							<div class="col-md-6">
+								<ul class="mb-0">
+									<li>Enter the complete registration number (e.g., KCA 123A)</li>
+									<li>You can enter with or without spaces</li>
+									<li>Search is case-insensitive</li>
+								</ul>
+							</div>
+							<div class="col-md-6">
+								<ul class="mb-0">
+									<li>View comprehensive policy details</li>
+									<li>Check claims history and status</li>
+									<li>Access vehicle and incident photos</li>
+								</ul>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</main>
+	</div>
+</div>
+
+<script>
+function redirectToVehicle(event) {
+	event.preventDefault();
+	const registration = document.getElementById('registration').value.trim().toUpperCase();
+	if (registration) {
+		window.location.href = `/customer/vehicle/${encodeURIComponent(registration)}`;
+	}
+	return false;
+}
+</script>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+{% endblock %}

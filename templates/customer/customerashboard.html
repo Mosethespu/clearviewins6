@@ -10,13 +10,12 @@
 					<a class="btn btn-primary sidebar-btn" href="{{ url_for('customer_search') }}">
 						<i class="bi bi-search"></i> Search
 					</a>
-					<a class="btn btn-outline-primary sidebar-btn" href="#">View Score History</a>
-					<a class="btn btn-outline-primary sidebar-btn" href="#">Add Policies</a>
-					<a class="btn btn-outline-primary sidebar-btn" href="#">View Claims</a>
-					<a class="btn btn-outline-primary sidebar-btn" href="#">Search Vehicle</a>
-					<a class="btn btn-outline-primary sidebar-btn" href="#">Search Driver</a>
-					<a class="btn btn-outline-primary sidebar-btn" href="#">AI Analytics Tool</a>
-					<a class="btn btn-outline-primary sidebar-btn" href="#">Make a Report</a>
+					<a class="btn btn-outline-primary sidebar-btn" href="{{ url_for('customer_policy_management') }}">
+						<i class="bi bi-shield-check"></i> Policy Management
+					</a>
+				<a class="btn btn-outline-primary sidebar-btn" href="#">Claims Management</a>
+				<a class="btn btn-outline-primary sidebar-btn" href="{{ url_for('customer_search_vehicle') }}">Search Vehicle</a>
+				<a class="btn btn-outline-primary sidebar-btn" href="{{ url_for('customer_reports_and_insights') }}">Reports & Insights</a>
 				</div>
 			</div>
 		</aside>

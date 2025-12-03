@@ -1,0 +1,306 @@
+{% extends "base.html" %}
+
+{% block title %}Claim Details - {{ claim.claim_number }} - ClearView Insurance{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+	<div class="row">
+		<!-- Sidebar -->
+		<aside class="col-12 col-md-3 col-lg-2 mb-4 mb-md-0">
+			<div class="dashboard-sidebar p-3 bg-light rounded shadow-sm">
+				<h6 class="text-uppercase text-muted mb-3">User Options</h6>
+				<div class="d-grid gap-2">
+					<a class="btn btn-outline-primary sidebar-btn" href="{{ url_for('customer_dashboard') }}">
+						<i class="bi bi-house"></i> Dashboard
+					</a>
+					<a class="btn btn-outline-primary sidebar-btn" href="{{ url_for('customer_search') }}">
+						<i class="bi bi-search"></i> Search
+					</a>
+					<a class="btn btn-outline-primary sidebar-btn" href="#">Policies Management</a>
+					<a class="btn btn-outline-primary sidebar-btn" href="#">Claims Management</a>
+					<a class="btn btn-outline-primary sidebar-btn" href="{{ url_for('customer_search_vehicle') }}">
+						<i class="bi bi-car-front"></i> Search Vehicle
+					</a>
+					<a class="btn btn-outline-primary sidebar-btn" href="{{ url_for('customer_reports_and_insights') }}">Reports & Insights</a>
+				</div>
+			</div>
+		</aside>
+
+		<!-- Main content -->
+		<main class="col-12 col-md-9 col-lg-10">
+			<div class="px-2 px-md-3">
+				<!-- Header -->
+				<div class="d-flex justify-content-between align-items-center mb-4">
+					<div>
+						<h2><i class="bi bi-file-earmark-medical-fill"></i> Claim Details</h2>
+						<p class="text-muted mb-0">{{ claim.claim_number }}</p>
+					</div>
+					<div>
+						<a href="{{ url_for('customer_view_vehicle', registration_number=claim.policy.registration_number) }}" 
+						   class="btn btn-outline-secondary">
+							<i class="bi bi-arrow-left"></i> Back to Vehicle
+						</a>
+					</div>
+				</div>
+
+				<!-- Claim Status Banner -->
+				<div class="alert {% if claim.status == 'Approved' %}alert-success{% elif claim.status == 'Pending' %}alert-warning{% elif claim.status == 'Under Review' %}alert-info{% else %}alert-danger{% endif %} mb-4">
+					<div class="d-flex justify-content-between align-items-center">
+						<div>
+							<h5 class="mb-0">
+								<i class="bi {% if claim.status == 'Approved' %}bi-check-circle{% elif claim.status == 'Pending' %}bi-hourglass-split{% elif claim.status == 'Under Review' %}bi-clock-history{% else %}bi-x-circle{% endif %}"></i>
+								Claim Status: <strong>{{ claim.status }}</strong>
+							</h5>
+						</div>
+						<div>
+							<strong>Claim Number:</strong> {{ claim.claim_number }}
+						</div>
+					</div>
+				</div>
+
+				<!-- Policy Information -->
+				<div class="card shadow-sm mb-4">
+					<div class="card-header bg-primary text-white">
+						<h5 class="mb-0"><i class="bi bi-file-text"></i> Related Policy Information</h5>
+					</div>
+					<div class="card-body">
+						<div class="row">
+							<div class="col-md-6">
+								<table class="table table-borderless mb-0">
+									<tr>
+										<th class="text-muted" style="width: 45%;">Policy Number:</th>
+										<td><strong>{{ claim.policy.policy_number if claim.policy else 'N/A' }}</strong></td>
+									</tr>
+									<tr>
+										<th class="text-muted">Insurance Company:</th>
+										<td>{{ claim.insurance_company.name if claim.insurance_company else 'N/A' }}</td>
+									</tr>
+									<tr>
+										<th class="text-muted">Vehicle:</th>
+										<td><strong>{{ claim.policy.registration_number if claim.policy else 'N/A' }}</strong></td>
+									</tr>
+								</table>
+							</div>
+							<div class="col-md-6">
+								<table class="table table-borderless mb-0">
+									<tr>
+										<th class="text-muted" style="width: 45%;">Make & Model:</th>
+										<td>{{ claim.policy.make_model if claim.policy else 'N/A' }}</td>
+									</tr>
+									<tr>
+										<th class="text-muted">Policy Type:</th>
+										<td>{{ claim.policy.policy_type if claim.policy else 'N/A' }}</td>
+									</tr>
+								</table>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Accident Details -->
+				<div class="card shadow-sm mb-4">
+					<div class="card-header bg-danger text-white">
+						<h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Accident Details</h5>
+					</div>
+					<div class="card-body">
+						<div class="row">
+							<div class="col-md-6">
+								<table class="table table-borderless mb-0">
+									<tr>
+										<th class="text-muted" style="width: 45%;">Date of Accident:</th>
+										<td><strong>{{ claim.accident_date.strftime('%d %B %Y') if claim.accident_date else 'N/A' }}</strong></td>
+									</tr>
+									<tr>
+										<th class="text-muted">Time of Accident:</th>
+										<td>{{ claim.accident_time.strftime('%H:%M') if claim.accident_time else 'N/A' }}</td>
+									</tr>
+									<tr>
+										<th class="text-muted">Location:</th>
+										<td>{{ claim.accident_location }}</td>
+									</tr>
+									<tr>
+										<th class="text-muted">Weather Conditions:</th>
+										<td>{{ claim.weather_conditions }}</td>
+									</tr>
+								</table>
+							</div>
+							<div class="col-md-6">
+								<table class="table table-borderless mb-0">
+									<tr>
+										<th class="text-muted" style="width: 45%;">Police Report Number:</th>
+										<td><code>{{ claim.police_report_number }}</code></td>
+									</tr>
+									<tr>
+										<th class="text-muted">Vehicle Towed:</th>
+										<td>
+											{% if claim.vehicle_towed %}
+												<span class="badge bg-warning">Yes</span>
+											{% else %}
+												<span class="badge bg-secondary">No</span>
+											{% endif %}
+										</td>
+									</tr>
+									{% if claim.vehicle_towed and claim.tow_location %}
+									<tr>
+										<th class="text-muted">Tow Location:</th>
+										<td>{{ claim.tow_location }}</td>
+									</tr>
+									{% endif %}
+									<tr>
+										<th class="text-muted">Date Submitted:</th>
+										<td>{{ claim.date_submitted.strftime('%d %B %Y %H:%M') if claim.date_submitted else 'N/A' }}</td>
+									</tr>
+								</table>
+							</div>
+						</div>
+
+						<hr>
+						<h6 class="mb-2"><i class="bi bi-chat-left-text"></i> Accident Description</h6>
+						<p class="mb-0">{{ claim.accident_description }}</p>
+					</div>
+				</div>
+
+				<!-- Damage & Injuries -->
+				<div class="card shadow-sm mb-4">
+					<div class="card-header bg-warning text-dark">
+						<h5 class="mb-0"><i class="bi bi-bandaid"></i> Damage & Injuries</h5>
+					</div>
+					<div class="card-body">
+						<div class="row">
+							<div class="col-md-6">
+								<h6 class="text-primary"><i class="bi bi-car-front"></i> Insured Vehicle Damage</h6>
+								<p>{{ claim.damage_insured_vehicle }}</p>
+
+								{% if claim.injuries_driver_passengers %}
+								<h6 class="text-primary mt-3"><i class="bi bi-person"></i> Driver/Passenger Injuries</h6>
+								<p>{{ claim.injuries_driver_passengers }}</p>
+								{% endif %}
+							</div>
+							<div class="col-md-6">
+								{% if claim.damage_third_party %}
+								<h6 class="text-danger"><i class="bi bi-car-front-fill"></i> Third Party Damage</h6>
+								<p>{{ claim.damage_third_party }}</p>
+								{% endif %}
+
+								{% if claim.injuries_third_parties %}
+								<h6 class="text-danger mt-3"><i class="bi bi-people"></i> Third Party Injuries</h6>
+								<p>{{ claim.injuries_third_parties }}</p>
+								{% endif %}
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Witness Information -->
+				{% if claim.witness_name %}
+				<div class="card shadow-sm mb-4">
+					<div class="card-header bg-info text-white">
+						<h5 class="mb-0"><i class="bi bi-eye"></i> Witness Information</h5>
+					</div>
+					<div class="card-body">
+						<div class="row">
+							<div class="col-md-6">
+								<table class="table table-borderless mb-0">
+									<tr>
+										<th class="text-muted" style="width: 40%;">Witness Name:</th>
+										<td>{{ claim.witness_name }}</td>
+									</tr>
+									<tr>
+										<th class="text-muted">Contact:</th>
+										<td>{{ claim.witness_contact }}</td>
+									</tr>
+								</table>
+							</div>
+							<div class="col-md-6">
+								{% if claim.witness_statement %}
+								<h6 class="mb-2">Statement:</h6>
+								<p class="mb-0">{{ claim.witness_statement }}</p>
+								{% endif %}
+							</div>
+						</div>
+					</div>
+				</div>
+				{% endif %}
+
+				<!-- Accident/Damage Photos -->
+				{% if claim.documents %}
+				<div class="card shadow-sm mb-4">
+					<div class="card-header bg-dark text-white">
+						<h5 class="mb-0"><i class="bi bi-images"></i> Accident & Damage Photos</h5>
+					</div>
+					<div class="card-body">
+						<div class="row g-3">
+							{% for doc in claim.documents %}
+							{% if doc.document_type.startswith('accident_photo') or doc.document_type.startswith('damage_photo') or doc.document_type in ['police_abstract', 'driver_license', 'logbook_copy', 'towing_receipt'] %}
+							<div class="col-md-4 col-lg-3">
+								<div class="card">
+									<img src="/uploads/{{ doc.file_path }}" 
+										 class="card-img-top" 
+										 alt="{{ doc.document_type }}"
+										 style="height: 200px; object-fit: cover; cursor: pointer;"
+										 data-bs-toggle="modal" 
+										 data-bs-target="#photoModal{{ loop.index }}"
+										 onerror="this.style.display='none'">
+									<div class="card-body text-center">
+										<p class="mb-0 small text-muted">{{ doc.document_type.replace('_', ' ').title() }}</p>
+										<small class="text-muted">{{ doc.uploaded_at.strftime('%d %b %Y') if doc.uploaded_at else '' }}</small>
+									</div>
+								</div>
+
+								<!-- Photo Modal -->
+								<div class="modal fade" id="photoModal{{ loop.index }}" tabindex="-1">
+									<div class="modal-dialog modal-lg modal-dialog-centered">
+										<div class="modal-content">
+											<div class="modal-header">
+												<h5 class="modal-title">{{ doc.document_type.replace('_', ' ').title() }}</h5>
+												<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+										</div>
+										<div class="modal-body text-center">
+											<img src="/uploads/{{ doc.file_path }}" 
+												 class="img-fluid" 
+												 alt="{{ doc.document_type }}"
+												 onerror="this.style.display='none'">
+										</div>
+										</div>
+									</div>
+								</div>
+							</div>
+							{% endif %}
+							{% endfor %}
+						</div>
+					</div>
+				</div>
+				{% else %}
+				<div class="card shadow-sm mb-4">
+					<div class="card-body text-center py-4">
+						<i class="bi bi-images text-muted" style="font-size: 3rem;"></i>
+						<p class="text-muted mt-2 mb-0">No accident photos available for this claim</p>
+					</div>
+				</div>
+				{% endif %}
+
+				<!-- Review Status -->
+				{% if claim.status in ['Approved', 'Rejected'] and claim.review_notes %}
+				<div class="card shadow-sm mb-4">
+					<div class="card-header {% if claim.status == 'Approved' %}bg-success{% else %}bg-danger{% endif %} text-white">
+						<h5 class="mb-0"><i class="bi bi-clipboard-check"></i> Review Notes</h5>
+					</div>
+					<div class="card-body">
+						<p class="mb-2"><strong>Reviewed on:</strong> {{ claim.review_date.strftime('%d %B %Y %H:%M') if claim.review_date else 'N/A' }}</p>
+						<p class="mb-0">{{ claim.review_notes }}</p>
+						
+						{% if claim.status == 'Rejected' and claim.rejection_reason %}
+						<hr>
+						<h6 class="text-danger">Rejection Reason:</h6>
+						<p class="mb-0">{{ claim.rejection_reason }}</p>
+						{% endif %}
+					</div>
+				</div>
+				{% endif %}
+			</div>
+		</main>
+	</div>
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+{% endblock %}

@@ -1,0 +1,441 @@
+{% extends "base.html" %}
+
+{% block title %}Customer Requests - ClearView Insurance{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+	<div class="row">
+		<!-- Sidebar -->
+		<aside class="col-12 col-md-3 col-lg-2 mb-4 mb-md-0">
+			<div class="dashboard-sidebar p-3 bg-light rounded shadow-sm">
+				<h6 class="text-uppercase text-muted mb-3">Insurer Menu</h6>
+				<div class="d-grid gap-2">
+					<a class="btn btn-outline-primary sidebar-btn" href="{{ url_for('insurer_dashboard') }}">
+						<i class="bi bi-house"></i> Dashboard
+					</a>
+					<a class="btn btn-outline-primary sidebar-btn" href="{{ url_for('create_policy') }}">
+						<i class="bi bi-file-earmark-plus"></i> Create Policy
+					</a>
+					<a class="btn btn-outline-primary sidebar-btn" href="{{ url_for('manage_policies') }}">
+						<i class="bi bi-folder"></i> Manage Policies
+					</a>
+					<a class="btn btn-outline-primary sidebar-btn" href="{{ url_for('create_claim') }}">
+						<i class="bi bi-file-earmark-medical"></i> Create Claim
+					</a>
+					<a class="btn btn-outline-primary sidebar-btn" href="{{ url_for('manage_claims') }}">
+						<i class="bi bi-list-check"></i> Manage Claims
+					</a>
+					<a class="btn btn-primary sidebar-btn" href="{{ url_for('insurer_customer_requests') }}">
+						<i class="bi bi-person-check"></i> Customer Requests
+					</a>
+					<a class="btn btn-outline-primary sidebar-btn" href="{{ url_for('premium_calculator') }}">
+						<i class="bi bi-calculator"></i> Premium Calculator
+					</a>
+					<a class="btn btn-outline-primary sidebar-btn" href="{{ url_for('insurer_reports_and_insights') }}">
+						<i class="bi bi-graph-up"></i> Reports & Insights
+					</a>
+				</div>
+			</div>
+		</aside>
+
+		<!-- Main content -->
+		<main class="col-12 col-md-9 col-lg-10">
+			<div class="px-2 px-md-3">
+				<!-- Header -->
+				<div class="d-flex justify-content-between align-items-center mb-4">
+					<div>
+						<h2><i class="bi bi-person-check"></i> Customer Requests</h2>
+						<p class="text-muted mb-0">Review and process customer policy requests</p>
+					</div>
+				</div>
+
+				<!-- Summary Cards -->
+				<div class="row g-3 mb-4">
+					<div class="col-md-4">
+						<div class="card shadow-sm border-primary">
+							<div class="card-body text-center">
+								<h3 class="text-primary mb-0">{{ access_requests|length }}</h3>
+								<p class="text-muted mb-0">Access Requests</p>
+							</div>
+						</div>
+					</div>
+					<div class="col-md-4">
+						<div class="card shadow-sm border-danger">
+							<div class="card-body text-center">
+								<h3 class="text-danger mb-0">{{ cancellation_requests|length }}</h3>
+								<p class="text-muted mb-0">Cancellation Requests</p>
+							</div>
+						</div>
+					</div>
+					<div class="col-md-4">
+						<div class="card shadow-sm border-success">
+							<div class="card-body text-center">
+								<h3 class="text-success mb-0">{{ renewal_requests|length }}</h3>
+								<p class="text-muted mb-0">Renewal Requests</p>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Access Requests -->
+				<div class="card shadow-sm mb-4">
+					<div class="card-header bg-primary text-white">
+						<h5 class="mb-0"><i class="bi bi-key"></i> Policy Access Requests ({{ access_requests|length }})</h5>
+					</div>
+					<div class="card-body">
+						{% if access_requests %}
+						<div class="table-responsive">
+							<table class="table table-hover">
+								<thead>
+									<tr>
+										<th>Request Date</th>
+										<th>Customer</th>
+										<th>Policy Number</th>
+										<th>Vehicle</th>
+										<th>Reason</th>
+										<th>Actions</th>
+									</tr>
+								</thead>
+								<tbody>
+									{% for req in access_requests %}
+									<tr>
+										<td>{{ req.request_date.strftime('%d %b %Y %H:%M') }}</td>
+										<td>
+											<strong>{{ req.customer.username }}</strong><br>
+											<small class="text-muted">{{ req.customer.email }}</small>
+										</td>
+										<td><strong>{{ req.policy.policy_number }}</strong></td>
+										<td>{{ req.policy.registration_number }} - {{ req.policy.make_model }}</td>
+										<td>
+											{% if req.request_reason %}
+												<small>{{ req.request_reason[:50] }}{% if req.request_reason|length > 50 %}...{% endif %}</small>
+											{% else %}
+												<small class="text-muted">No reason provided</small>
+											{% endif %}
+										</td>
+										<td>
+											<div class="btn-group btn-group-sm">
+												<button type="button" class="btn btn-success" data-bs-toggle="modal" 
+														data-bs-target="#approveAccessModal{{ req.id }}">
+													<i class="bi bi-check-circle"></i> Approve
+												</button>
+												<button type="button" class="btn btn-danger" data-bs-toggle="modal" 
+														data-bs-target="#rejectAccessModal{{ req.id }}">
+													<i class="bi bi-x-circle"></i> Reject
+												</button>
+											</div>
+										</td>
+									</tr>
+
+									<!-- Approve Modal -->
+									<div class="modal fade" id="approveAccessModal{{ req.id }}" tabindex="-1">
+										<div class="modal-dialog">
+											<div class="modal-content">
+												<div class="modal-header bg-success text-white">
+													<h5 class="modal-title">Approve Access Request</h5>
+													<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+												</div>
+												<form action="{{ url_for('insurer_approve_access_request', request_id=req.id) }}" method="POST">
+													<div class="modal-body">
+														<p><strong>Customer:</strong> {{ req.customer.email }}</p>
+														<p><strong>Policy:</strong> {{ req.policy.policy_number }}</p>
+														<div class="mb-3">
+															<label class="form-label">Review Notes (Optional)</label>
+															<textarea class="form-control" name="notes" rows="2"></textarea>
+														</div>
+														<div class="alert alert-info mb-0">
+															<i class="bi bi-info-circle"></i> This will update the policy's email address to {{ req.customer.email }} and grant the customer full access.
+														</div>
+													</div>
+													<div class="modal-footer">
+														<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+														<button type="submit" class="btn btn-success">Approve Request</button>
+													</div>
+												</form>
+											</div>
+										</div>
+									</div>
+
+									<!-- Reject Modal -->
+									<div class="modal fade" id="rejectAccessModal{{ req.id }}" tabindex="-1">
+										<div class="modal-dialog">
+											<div class="modal-content">
+												<div class="modal-header bg-danger text-white">
+													<h5 class="modal-title">Reject Access Request</h5>
+													<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+												</div>
+												<form action="{{ url_for('insurer_reject_access_request', request_id=req.id) }}" method="POST">
+													<div class="modal-body">
+														<p><strong>Customer:</strong> {{ req.customer.email }}</p>
+														<p><strong>Policy:</strong> {{ req.policy.policy_number }}</p>
+														<div class="mb-3">
+															<label class="form-label">Rejection Reason <span class="text-danger">*</span></label>
+															<textarea class="form-control" name="reason" rows="3" required></textarea>
+														</div>
+													</div>
+													<div class="modal-footer">
+														<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+														<button type="submit" class="btn btn-danger">Reject Request</button>
+													</div>
+												</form>
+											</div>
+										</div>
+									</div>
+									{% endfor %}
+								</tbody>
+							</table>
+						</div>
+						{% else %}
+						<div class="text-center py-4">
+							<i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
+							<p class="text-muted mt-2 mb-0">No pending access requests</p>
+						</div>
+						{% endif %}
+					</div>
+				</div>
+
+				<!-- Cancellation Requests -->
+				<div class="card shadow-sm mb-4">
+					<div class="card-header bg-danger text-white">
+						<h5 class="mb-0"><i class="bi bi-x-circle"></i> Policy Cancellation Requests ({{ cancellation_requests|length }})</h5>
+					</div>
+					<div class="card-body">
+						{% if cancellation_requests %}
+						<div class="table-responsive">
+							<table class="table table-hover">
+								<thead>
+									<tr>
+										<th>Request Date</th>
+										<th>Customer</th>
+										<th>Policy Number</th>
+										<th>Vehicle</th>
+										<th>Reason</th>
+										<th>Actions</th>
+									</tr>
+								</thead>
+								<tbody>
+									{% for req in cancellation_requests %}
+									<tr>
+										<td>{{ req.request_date.strftime('%d %b %Y %H:%M') }}</td>
+										<td>
+											<strong>{{ req.customer.username }}</strong><br>
+											<small class="text-muted">{{ req.customer.email }}</small>
+										</td>
+										<td><strong>{{ req.policy.policy_number }}</strong></td>
+										<td>{{ req.policy.registration_number }} - {{ req.policy.make_model }}</td>
+										<td><small>{{ req.cancellation_reason[:50] }}{% if req.cancellation_reason|length > 50 %}...{% endif %}</small></td>
+										<td>
+											<div class="btn-group btn-group-sm">
+												<button type="button" class="btn btn-success" data-bs-toggle="modal" 
+														data-bs-target="#approveCancelModal{{ req.id }}">
+													<i class="bi bi-check-circle"></i> Approve
+												</button>
+												<button type="button" class="btn btn-danger" data-bs-toggle="modal" 
+														data-bs-target="#rejectCancelModal{{ req.id }}">
+													<i class="bi bi-x-circle"></i> Reject
+												</button>
+											</div>
+										</td>
+									</tr>
+
+									<!-- Approve Cancellation Modal -->
+									<div class="modal fade" id="approveCancelModal{{ req.id }}" tabindex="-1">
+										<div class="modal-dialog">
+											<div class="modal-content">
+												<div class="modal-header bg-success text-white">
+													<h5 class="modal-title">Approve Cancellation Request</h5>
+													<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+												</div>
+												<form action="{{ url_for('insurer_approve_cancellation_request', request_id=req.id) }}" method="POST">
+													<div class="modal-body">
+														<p><strong>Policy:</strong> {{ req.policy.policy_number }}</p>
+														<p><strong>Customer Reason:</strong></p>
+														<p class="bg-light p-2 rounded">{{ req.cancellation_reason }}</p>
+														<div class="mb-3">
+															<label class="form-label">Review Notes (Optional)</label>
+															<textarea class="form-control" name="notes" rows="2"></textarea>
+														</div>
+														<div class="alert alert-warning mb-0">
+															<i class="bi bi-exclamation-triangle"></i> This will permanently cancel the policy.
+														</div>
+													</div>
+													<div class="modal-footer">
+														<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+														<button type="submit" class="btn btn-success">Approve Cancellation</button>
+													</div>
+												</form>
+											</div>
+										</div>
+									</div>
+
+									<!-- Reject Cancellation Modal -->
+									<div class="modal fade" id="rejectCancelModal{{ req.id }}" tabindex="-1">
+										<div class="modal-dialog">
+											<div class="modal-content">
+												<div class="modal-header bg-danger text-white">
+													<h5 class="modal-title">Reject Cancellation Request</h5>
+													<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+												</div>
+												<form action="{{ url_for('insurer_reject_cancellation_request', request_id=req.id) }}" method="POST">
+													<div class="modal-body">
+														<p><strong>Policy:</strong> {{ req.policy.policy_number }}</p>
+														<div class="mb-3">
+															<label class="form-label">Rejection Reason <span class="text-danger">*</span></label>
+															<textarea class="form-control" name="reason" rows="3" required></textarea>
+														</div>
+													</div>
+													<div class="modal-footer">
+														<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+														<button type="submit" class="btn btn-danger">Reject Request</button>
+													</div>
+												</form>
+											</div>
+										</div>
+									</div>
+									{% endfor %}
+								</tbody>
+							</table>
+						</div>
+						{% else %}
+						<div class="text-center py-4">
+							<i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
+							<p class="text-muted mt-2 mb-0">No pending cancellation requests</p>
+						</div>
+						{% endif %}
+					</div>
+				</div>
+
+				<!-- Renewal Requests -->
+				<div class="card shadow-sm mb-4">
+					<div class="card-header bg-success text-white">
+						<h5 class="mb-0"><i class="bi bi-arrow-clockwise"></i> Policy Renewal Requests ({{ renewal_requests|length }})</h5>
+					</div>
+					<div class="card-body">
+						{% if renewal_requests %}
+						<div class="table-responsive">
+							<table class="table table-hover">
+								<thead>
+									<tr>
+										<th>Request Date</th>
+										<th>Customer</th>
+										<th>Policy Number</th>
+										<th>Current Dates</th>
+										<th>New Dates</th>
+										<th>Premium</th>
+										<th>Actions</th>
+									</tr>
+								</thead>
+								<tbody>
+									{% for req in renewal_requests %}
+									<tr>
+										<td>{{ req.request_date.strftime('%d %b %Y') }}</td>
+										<td>
+											<strong>{{ req.customer.username }}</strong><br>
+											<small class="text-muted">{{ req.customer.email }}</small>
+										</td>
+										<td><strong>{{ req.policy.policy_number }}</strong></td>
+										<td>
+											<small>
+												{{ req.policy.effective_date.strftime('%d %b %Y') if req.policy.effective_date else 'N/A' }}<br>
+												to {{ req.policy.expiry_date.strftime('%d %b %Y') if req.policy.expiry_date else 'N/A' }}
+											</small>
+										</td>
+										<td>
+											<small class="text-success">
+												{{ req.new_effective_date.strftime('%d %b %Y') }}<br>
+												to {{ req.new_expiry_date.strftime('%d %b %Y') }}
+											</small>
+										</td>
+										<td>KES {{ "{:,.0f}".format(req.policy.premium_amount) }}</td>
+										<td>
+											<div class="btn-group btn-group-sm">
+												<button type="button" class="btn btn-success" data-bs-toggle="modal" 
+														data-bs-target="#approveRenewalModal{{ req.id }}">
+													<i class="bi bi-check-circle"></i> Approve
+												</button>
+												<button type="button" class="btn btn-danger" data-bs-toggle="modal" 
+														data-bs-target="#rejectRenewalModal{{ req.id }}">
+													<i class="bi bi-x-circle"></i> Reject
+												</button>
+											</div>
+										</td>
+									</tr>
+
+									<!-- Approve Renewal Modal -->
+									<div class="modal fade" id="approveRenewalModal{{ req.id }}" tabindex="-1">
+										<div class="modal-dialog">
+											<div class="modal-content">
+												<div class="modal-header bg-success text-white">
+													<h5 class="modal-title">Approve Renewal Request</h5>
+													<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+												</div>
+												<form action="{{ url_for('insurer_approve_renewal_request', request_id=req.id) }}" method="POST">
+													<div class="modal-body">
+														<p><strong>Policy:</strong> {{ req.policy.policy_number }}</p>
+														<p><strong>New Period:</strong> {{ req.new_effective_date.strftime('%d %b %Y') }} - {{ req.new_expiry_date.strftime('%d %b %Y') }}</p>
+														<div class="mb-3">
+															<label class="form-label">Renewal Premium (KES)</label>
+															<input type="number" class="form-control" name="premium" 
+																   value="{{ req.policy.premium_amount }}" step="0.01" required>
+															<small class="text-muted">Current: KES {{ "{:,.2f}".format(req.policy.premium_amount) }}</small>
+														</div>
+														<div class="mb-3">
+															<label class="form-label">Review Notes (Optional)</label>
+															<textarea class="form-control" name="notes" rows="2"></textarea>
+														</div>
+														<div class="alert alert-info mb-0">
+															<i class="bi bi-info-circle"></i> This will update the policy dates and set status to Active.
+														</div>
+													</div>
+													<div class="modal-footer">
+														<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+														<button type="submit" class="btn btn-success">Approve Renewal</button>
+													</div>
+												</form>
+											</div>
+										</div>
+									</div>
+
+									<!-- Reject Renewal Modal -->
+									<div class="modal fade" id="rejectRenewalModal{{ req.id }}" tabindex="-1">
+										<div class="modal-dialog">
+											<div class="modal-content">
+												<div class="modal-header bg-danger text-white">
+													<h5 class="modal-title">Reject Renewal Request</h5>
+													<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+												</div>
+												<form action="{{ url_for('insurer_reject_renewal_request', request_id=req.id) }}" method="POST">
+													<div class="modal-body">
+														<p><strong>Policy:</strong> {{ req.policy.policy_number }}</p>
+														<div class="mb-3">
+															<label class="form-label">Rejection Reason <span class="text-danger">*</span></label>
+															<textarea class="form-control" name="reason" rows="3" required></textarea>
+														</div>
+													</div>
+													<div class="modal-footer">
+														<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+														<button type="submit" class="btn btn-danger">Reject Request</button>
+													</div>
+												</form>
+											</div>
+										</div>
+									</div>
+									{% endfor %}
+								</tbody>
+							</table>
+						</div>
+						{% else %}
+						<div class="text-center py-4">
+							<i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
+							<p class="text-muted mt-2 mb-0">No pending renewal requests</p>
+						</div>
+						{% endif %}
+					</div>
+				</div>
+			</div>
+		</main>
+	</div>
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+{% endblock %}

@@ -10,11 +10,11 @@
 					<a class="btn btn-warning sidebar-btn" href="{{ url_for('regulator_search') }}">
 						<i class="bi bi-search"></i> Search
 					</a>
-					<a class="btn btn-outline-warning sidebar-btn" href="#">Industry Overview</a>
-					<a class="btn btn-outline-warning sidebar-btn" href="#">Compliance Monitoring</a>
-					<a class="btn btn-outline-warning sidebar-btn" href="#">Audit Reports</a>
-					<a class="btn btn-outline-warning sidebar-btn" href="#">Risk Assessment</a>
-					<a class="btn btn-outline-warning sidebar-btn" href="#">Market Analysis</a>
+				<a class="btn btn-outline-warning sidebar-btn" href="{{ url_for('regulator_reports_and_insights') }}">Reports & Insights</a>
+				<a class="btn btn-outline-warning sidebar-btn" href="#">Compliance Monitoring</a>
+				<a class="btn btn-outline-warning sidebar-btn" href="#">Audit Reports</a>
+				<a class="btn btn-outline-warning sidebar-btn" href="#">Risk Assessment</a>
+				<a class="btn btn-outline-warning sidebar-btn" href="#">Market Analysis</a>
 					<a class="btn btn-outline-warning sidebar-btn" href="#">Violations & Penalties</a>
 					<a class="btn btn-outline-warning sidebar-btn" href="#">Regulatory Guidelines</a>
 				</div>
@@ -33,44 +33,47 @@
 					<div class="col-12 col-lg-6">
 						<div class="card shadow-sm h-100">
 							<div class="card-header bg-warning text-dark">
-								<h6 class="mb-0">Registered Insurers</h6>
+								<h6 class="mb-0">Insurance Companies - Compliance Overview</h6>
 							</div>
 							<div class="card-body p-0">
 								<div class="table-responsive">
 									<table class="table table-sm table-hover mb-0 align-middle">
 										<thead class="table-light">
 											<tr>
-												<th>Insurer Name</th>
-												<th>License No.</th>
-												<th>Compliance</th>
+												<th>Company Name</th>
+												<th class="text-center">Active Policies</th>
+												<th class="text-center">Compliance</th>
 												<th>Status</th>
 											</tr>
 										</thead>
 										<tbody>
+											{% for company in company_data[:8] %}
 											<tr>
-												<td>ABC Insurance</td>
-												<td>INS-001</td>
-												<td>98%</td>
-												<td><span class="badge bg-success">Active</span></td>
+												<td>{{ company.name }}</td>
+												<td class="text-center">{{ company.active_policies }}</td>
+												<td class="text-center">
+													{% if company.compliance_score >= 90 %}
+														<span class="badge bg-success">{{ "{:.0f}".format(company.compliance_score) }}%</span>
+													{% elif company.compliance_score >= 75 %}
+														<span class="badge bg-warning">{{ "{:.0f}".format(company.compliance_score) }}%</span>
+													{% else %}
+														<span class="badge bg-danger">{{ "{:.0f}".format(company.compliance_score) }}%</span>
+													{% endif %}
+												</td>
+												<td>
+													{% if company.status == 'Active' %}
+														<span class="badge bg-success">Active</span>
+													{% else %}
+														<span class="badge bg-secondary">Inactive</span>
+													{% endif %}
+												</td>
 											</tr>
+											{% endfor %}
+											{% if not company_data %}
 											<tr>
-												<td>XYZ Covers Ltd</td>
-												<td>INS-002</td>
-												<td>95%</td>
-												<td><span class="badge bg-success">Active</span></td>
+												<td colspan="4" class="text-center text-muted">No companies registered</td>
 											</tr>
-											<tr>
-												<td>SecureLife Inc</td>
-												<td>INS-003</td>
-												<td>88%</td>
-												<td><span class="badge bg-warning">Review</span></td>
-											</tr>
-											<tr>
-												<td>SafeDrive Insurance</td>
-												<td>INS-004</td>
-												<td>92%</td>
-												<td><span class="badge bg-success">Active</span></td>
-											</tr>
+											{% endif %}
 										</tbody>
 									</table>
 								</div>
@@ -78,48 +81,45 @@
 						</div>
 					</div>
 
-					<!-- Recent Violations Table -->
+					<!-- Recent Issues Table -->
 					<div class="col-12 col-lg-6">
 						<div class="card shadow-sm h-100">
 							<div class="card-header bg-danger text-white">
-								<h6 class="mb-0">Recent Violations</h6>
+								<h6 class="mb-0">Recent Issues / Claims Under Review</h6>
 							</div>
 							<div class="card-body p-0">
 								<div class="table-responsive">
 									<table class="table table-sm table-hover mb-0 align-middle">
 										<thead class="table-light">
 											<tr>
-												<th>Violation ID</th>
-												<th>Insurer</th>
+												<th>Claim ID</th>
+												<th>Company</th>
 												<th>Type</th>
 												<th>Severity</th>
 											</tr>
 										</thead>
 										<tbody>
+											{% for issue in recent_issues[:8] %}
 											<tr>
-												<td>VIO-001</td>
-												<td>SecureLife Inc</td>
-												<td>Late Reporting</td>
-												<td><span class="badge bg-warning">Medium</span></td>
+												<td>{{ issue.id }}</td>
+												<td>{{ issue.company }}</td>
+												<td>{{ issue.type }}</td>
+												<td>
+													{% if issue.severity == 'High' %}
+														<span class="badge bg-danger">High</span>
+													{% elif issue.severity == 'Medium' %}
+														<span class="badge bg-warning">Medium</span>
+													{% else %}
+														<span class="badge bg-info">Low</span>
+													{% endif %}
+												</td>
 											</tr>
+											{% endfor %}
+											{% if not recent_issues %}
 											<tr>
-												<td>VIO-002</td>
-												<td>ABC Insurance</td>
-												<td>Documentation</td>
-												<td><span class="badge bg-info">Low</span></td>
+												<td colspan="4" class="text-center text-muted">No recent issues</td>
 											</tr>
-											<tr>
-												<td>VIO-003</td>
-												<td>XYZ Covers Ltd</td>
-												<td>Claim Processing</td>
-												<td><span class="badge bg-danger">High</span></td>
-											</tr>
-											<tr>
-												<td>VIO-004</td>
-												<td>SafeDrive Insurance</td>
-												<td>Premium Rates</td>
-												<td><span class="badge bg-warning">Medium</span></td>
-											</tr>
+											{% endif %}
 										</tbody>
 									</table>
 								</div>
@@ -132,26 +132,26 @@
 				<div class="row g-3 mt-3">
 					<div class="col-6 col-md-3">
 						<div class="metric-card text-center shadow-sm p-3 bg-white rounded h-100">
-							<p class="text-muted mb-1 small">Registered Insurers</p>
-							<p class="metric-value text-warning mb-0">47</p>
+							<p class="text-muted mb-1 small">Insurance Companies</p>
+							<p class="metric-value text-warning mb-0">{{ total_companies }}</p>
 						</div>
 					</div>
 					<div class="col-6 col-md-3">
 						<div class="metric-card text-center shadow-sm p-3 bg-white rounded h-100">
-							<p class="text-muted mb-1 small">Active Violations</p>
-							<p class="metric-value text-danger mb-0">8</p>
+							<p class="text-muted mb-1 small">Total Policies</p>
+							<p class="metric-value text-primary mb-0">{{ total_policies }}</p>
 						</div>
 					</div>
 					<div class="col-6 col-md-3">
 						<div class="metric-card text-center shadow-sm p-3 bg-white rounded h-100">
 							<p class="text-muted mb-1 small">Compliance Rate</p>
-							<p class="metric-value text-success mb-0">94%</p>
+							<p class="metric-value text-success mb-0">{{ "{:.0f}".format(compliance_rate) }}%</p>
 						</div>
 					</div>
 					<div class="col-6 col-md-3">
 						<div class="metric-card text-center shadow-sm p-3 bg-white rounded h-100">
-							<p class="text-muted mb-1 small">Audits This Month</p>
-							<p class="metric-value text-info mb-0">12</p>
+							<p class="text-muted mb-1 small">Pending Claims</p>
+							<p class="metric-value text-info mb-0">{{ pending_claims }}</p>
 						</div>
 					</div>
 				</div>

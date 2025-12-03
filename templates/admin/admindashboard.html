@@ -23,9 +23,9 @@
 							<span class="badge bg-danger">{{ pending_regulator_count }}</span>
 						{% endif %}
 					</a>
-					<a class="btn btn-outline-primary sidebar-btn" href="#">View All Policies</a>
-					<a class="btn btn-outline-primary sidebar-btn" href="#">View All Claims</a>
-					<a class="btn btn-outline-primary sidebar-btn" href="#">Reports & Insights</a>
+					<a class="btn btn-outline-primary sidebar-btn" href="{{ url_for('admin_view_policies') }}">View All Policies</a>
+					<a class="btn btn-outline-primary sidebar-btn" href="{{ url_for('admin_view_claims') }}">View All Claims</a>
+					<a class="btn btn-outline-primary sidebar-btn" href="{{ url_for('admin_reports_and_insights') }}">Reports & Insights</a>
 				</div>
 			</div>
 		</aside>

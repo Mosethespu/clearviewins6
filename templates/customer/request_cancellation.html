@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}Request Cancellation - {{ policy.policy_number }} - ClearView Insurance{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+	<div class="row">
+		<!-- Sidebar -->
+		<aside class="col-12 col-md-3 col-lg-2 mb-4 mb-md-0">
+			<div class="dashboard-sidebar p-3 bg-light rounded shadow-sm">
+				<h6 class="text-uppercase text-muted mb-3">User Options</h6>
+				<div class="d-grid gap-2">
+					<a class="btn btn-outline-primary sidebar-btn" href="{{ url_for('customer_dashboard') }}">
+						<i class="bi bi-house"></i> Dashboard
+					</a>
+					<a class="btn btn-outline-primary sidebar-btn" href="{{ url_for('customer_search') }}">
+						<i class="bi bi-search"></i> Search
+					</a>
+					<a class="btn btn-primary sidebar-btn" href="{{ url_for('customer_policy_management') }}">
+						<i class="bi bi-shield-check"></i> Policy Management
+					</a>
+					<a class="btn btn-outline-primary sidebar-btn" href="{{ url_for('customer_search_vehicle') }}">
+						<i class="bi bi-car-front"></i> Search Vehicle
+					</a>
+					<a class="btn btn-outline-primary sidebar-btn" href="{{ url_for('customer_reports_and_insights') }}">
+						<i class="bi bi-graph-up"></i> Reports & Insights
+					</a>
+				</div>
+			</div>
+		</aside>
+
+		<!-- Main content -->
+		<main class="col-12 col-md-9 col-lg-10">
+			<div class="px-2 px-md-3">
+				<!-- Header -->
+				<div class="d-flex justify-content-between align-items-center mb-4">
+					<div>
+						<h2><i class="bi bi-x-circle text-danger"></i> Request Policy Cancellation</h2>
+						<p class="text-muted mb-0">Submit cancellation request for {{ policy.policy_number }}</p>
+					</div>
+					<div>
+						<a href="{{ url_for('customer_policy_management') }}" class="btn btn-outline-secondary">
+							<i class="bi bi-arrow-left"></i> Cancel
+						</a>
+					</div>
+				</div>
+
+				<div class="row justify-content-center">
+					<div class="col-lg-8">
+						<!-- Warning Alert -->
+						<div class="alert alert-warning">
+							<h5 class="alert-heading"><i class="bi bi-exclamation-triangle"></i> Important Notice</h5>
+							<p>Cancelling your insurance policy may result in:</p>
+							<ul class="mb-0">
+								<li>Loss of coverage for your vehicle</li>
+								<li>Potential refund of unused premium (subject to terms)</li>
+								<li>Higher premiums when you reapply</li>
+								<li>Legal implications if your vehicle is used on public roads</li>
+							</ul>
+						</div>
+
+						<!-- Policy Summary -->
+						<div class="card shadow-sm mb-4">
+							<div class="card-header bg-primary text-white">
+								<h5 class="mb-0"><i class="bi bi-file-text"></i> Policy Details</h5>
+							</div>
+							<div class="card-body">
+								<div class="row">
+									<div class="col-md-6">
+										<p><strong>Policy Number:</strong> {{ policy.policy_number }}</p>
+										<p><strong>Vehicle:</strong> {{ policy.registration_number }} - {{ policy.make_model }}</p>
+										<p><strong>Premium:</strong> KES {{ "{:,.2f}".format(policy.premium_amount) }}</p>
+									</div>
+									<div class="col-md-6">
+										<p><strong>Insurance Company:</strong> {{ policy.insurance_company.name if policy.insurance_company else 'N/A' }}</p>
+										<p><strong>Expiry Date:</strong> {{ policy.expiry_date.strftime('%d %b %Y') if policy.expiry_date else 'N/A' }}</p>
+										<p><strong>Status:</strong> <span class="badge bg-success">{{ policy.status }}</span></p>
+									</div>
+								</div>
+							</div>
+						</div>
+
+						<!-- Cancellation Form -->
+						<div class="card shadow-sm mb-4">
+							<div class="card-header bg-danger text-white">
+								<h5 class="mb-0"><i class="bi bi-x-octagon"></i> Cancellation Request</h5>
+							</div>
+							<div class="card-body">
+								<form method="POST">
+									<div class="mb-4">
+										<label for="reason" class="form-label">Reason for Cancellation <span class="text-danger">*</span></label>
+										<textarea class="form-control" 
+												  id="reason" 
+												  name="reason" 
+												  rows="5"
+												  placeholder="Please provide a detailed reason for cancelling this policy..."
+												  required></textarea>
+										<div class="form-text">This information helps us improve our services</div>
+									</div>
+
+									<div class="alert alert-info">
+										<i class="bi bi-info-circle"></i>
+										<strong>What happens next?</strong>
+										<ul class="mb-0 mt-2">
+											<li>Your cancellation request will be sent to the insurer for review</li>
+											<li>The insurer will verify the request and calculate any refund</li>
+											<li>If approved, your policy will be cancelled</li>
+											<li>You will be notified of the decision and any refund amount</li>
+										</ul>
+									</div>
+
+									<div class="d-grid gap-2">
+										<button type="submit" class="btn btn-danger btn-lg" 
+												onclick="return confirm('Are you sure you want to submit this cancellation request? This action cannot be undone once approved.')">
+											<i class="bi bi-x-circle"></i> Submit Cancellation Request
+										</button>
+										<a href="{{ url_for('customer_policy_management') }}" class="btn btn-outline-secondary">
+											Cancel and Keep Policy
+										</a>
+									</div>
+								</form>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</main>
+	</div>
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+{% endblock %}

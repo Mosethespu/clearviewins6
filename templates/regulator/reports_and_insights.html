@@ -1,0 +1,350 @@
+{% extends "base.html" %}
+
+{% block title %}Regulatory Reports & Insights - ClearView Insurance{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+	<!-- Header -->
+	<div class="row mb-4">
+		<div class="col-md-6">
+			<h2><i class="bi bi-shield-check"></i> Regulatory Reports & Insights</h2>
+			<p class="text-muted">Industry oversight and compliance monitoring for {{ regulatory_body.name if regulatory_body else 'Regulatory Body' }}</p>
+		</div>
+		<div class="col-md-6 text-end">
+			<div class="btn-group" role="group">
+				<button type="button" class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown">
+					<i class="bi bi-download"></i> Export CSV
+				</button>
+				<ul class="dropdown-menu">
+					<li><a class="dropdown-item" href="{{ url_for('regulator_export_reports_csv', type='summary') }}">Summary Report</a></li>
+					<li><a class="dropdown-item" href="{{ url_for('regulator_export_reports_csv', type='companies') }}">Companies Compliance</a></li>
+					<li><a class="dropdown-item" href="{{ url_for('regulator_export_reports_csv', type='policies') }}">Industry Policies</a></li>
+					<li><a class="dropdown-item" href="{{ url_for('regulator_export_reports_csv', type='claims') }}">Industry Claims</a></li>
+				</ul>
+			</div>
+			<a href="{{ url_for('regulator_dashboard') }}" class="btn btn-outline-warning ms-2">
+				<i class="bi bi-house"></i> Dashboard
+			</a>
+		</div>
+	</div>
+
+	<!-- Industry Overview -->
+	<div class="row mb-4">
+		<div class="col-12">
+			<div class="card shadow-sm border-warning">
+				<div class="card-header bg-warning text-dark">
+					<h4 class="mb-0"><i class="bi bi-globe"></i> Kenya Insurance Industry Overview</h4>
+				</div>
+				<div class="card-body">
+					<div class="row g-3">
+						<!-- Companies Summary -->
+						<div class="col-md-3">
+							<div class="card bg-light h-100">
+								<div class="card-body text-center">
+									<i class="bi bi-building text-warning" style="font-size: 2rem;"></i>
+									<h3 class="mt-2 mb-0">{{ total_companies }}</h3>
+									<p class="text-muted mb-1">Insurance Companies</p>
+									<small class="text-muted"><i class="bi bi-people"></i> {{ approved_insurers }} Professionals</small>
+								</div>
+							</div>
+						</div>
+						<!-- Policies Summary -->
+						<div class="col-md-3">
+							<div class="card bg-light h-100">
+								<div class="card-body text-center">
+									<i class="bi bi-file-earmark-text text-primary" style="font-size: 2rem;"></i>
+									<h3 class="mt-2 mb-0">{{ total_policies }}</h3>
+									<p class="text-muted mb-1">Total Policies</p>
+									<small class="text-success"><i class="bi bi-check-circle"></i> {{ active_policies }} Active</small>
+								</div>
+							</div>
+						</div>
+						<!-- Premium Summary -->
+						<div class="col-md-3">
+							<div class="card bg-light h-100">
+								<div class="card-body text-center">
+									<i class="bi bi-currency-exchange text-success" style="font-size: 2rem;"></i>
+									<h3 class="mt-2 mb-0">KES {{ "{:,.0f}".format(total_premium / 1000000) }}M</h3>
+									<p class="text-muted mb-0">Total Premium</p>
+								</div>
+							</div>
+						</div>
+						<!-- Claims Summary -->
+						<div class="col-md-3">
+							<div class="card bg-light h-100">
+								<div class="card-body text-center">
+									<i class="bi bi-file-earmark-medical text-info" style="font-size: 2rem;"></i>
+									<h3 class="mt-2 mb-0">{{ total_claims }}</h3>
+									<p class="text-muted mb-1">Total Claims</p>
+									<small class="text-success">{{ "{:.1f}".format(claim_approval_rate) }}% Approval Rate</small>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Market Statistics -->
+	<div class="row mb-4">
+		<div class="col-lg-6 mb-3">
+			<div class="card shadow-sm h-100">
+				<div class="card-header bg-info text-white">
+					<h5 class="mb-0"><i class="bi bi-pie-chart"></i> Industry Policy Distribution</h5>
+				</div>
+				<div class="card-body">
+					<table class="table table-hover mb-0">
+						<thead>
+							<tr>
+								<th>Status</th>
+								<th class="text-end">Count</th>
+								<th class="text-end">Percentage</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td><span class="badge bg-success">Active</span></td>
+								<td class="text-end">{{ active_policies }}</td>
+								<td class="text-end">{{ "{:.1f}".format((active_policies / total_policies * 100) if total_policies else 0) }}%</td>
+							</tr>
+							<tr>
+								<td><span class="badge bg-secondary">Expired</span></td>
+								<td class="text-end">{{ expired_policies }}</td>
+								<td class="text-end">{{ "{:.1f}".format((expired_policies / total_policies * 100) if total_policies else 0) }}%</td>
+							</tr>
+							<tr>
+								<td><span class="badge bg-danger">Cancelled</span></td>
+								<td class="text-end">{{ cancelled_policies }}</td>
+								<td class="text-end">{{ "{:.1f}".format((cancelled_policies / total_policies * 100) if total_policies else 0) }}%</td>
+							</tr>
+							<tr class="table-primary fw-bold">
+								<td>Total</td>
+								<td class="text-end">{{ total_policies }}</td>
+								<td class="text-end">100%</td>
+							</tr>
+						</tbody>
+					</table>
+					<hr>
+					<div class="mt-2">
+						<p class="mb-1"><strong>Policy Types:</strong></p>
+						<div class="d-flex justify-content-between mb-1">
+							<span>Comprehensive:</span>
+							<span class="badge bg-primary">{{ comprehensive_policies }} ({{ "{:.1f}".format((comprehensive_policies / total_policies * 100) if total_policies else 0) }}%)</span>
+						</div>
+						<div class="d-flex justify-content-between">
+							<span>Third-Party:</span>
+							<span class="badge bg-secondary">{{ third_party_policies }} ({{ "{:.1f}".format((third_party_policies / total_policies * 100) if total_policies else 0) }}%)</span>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="col-lg-6 mb-3">
+			<div class="card shadow-sm h-100">
+				<div class="card-header bg-danger text-white">
+					<h5 class="mb-0"><i class="bi bi-bar-chart"></i> Industry Claims Analysis</h5>
+				</div>
+				<div class="card-body">
+					<table class="table table-hover mb-0">
+						<thead>
+							<tr>
+								<th>Status</th>
+								<th class="text-end">Count</th>
+								<th class="text-end">Percentage</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td><span class="badge bg-warning text-dark">Pending</span></td>
+								<td class="text-end">{{ pending_claims }}</td>
+								<td class="text-end">{{ "{:.1f}".format((pending_claims / total_claims * 100) if total_claims else 0) }}%</td>
+							</tr>
+							<tr>
+								<td><span class="badge bg-info">Under Review</span></td>
+								<td class="text-end">{{ under_review_claims }}</td>
+								<td class="text-end">{{ "{:.1f}".format((under_review_claims / total_claims * 100) if total_claims else 0) }}%</td>
+							</tr>
+							<tr>
+								<td><span class="badge bg-success">Approved</span></td>
+								<td class="text-end">{{ approved_claims }}</td>
+								<td class="text-end">{{ "{:.1f}".format((approved_claims / total_claims * 100) if total_claims else 0) }}%</td>
+							</tr>
+							<tr>
+								<td><span class="badge bg-danger">Rejected</span></td>
+								<td class="text-end">{{ rejected_claims }}</td>
+								<td class="text-end">{{ "{:.1f}".format((rejected_claims / total_claims * 100) if total_claims else 0) }}%</td>
+							</tr>
+							<tr class="table-danger fw-bold">
+								<td>Total</td>
+								<td class="text-end">{{ total_claims }}</td>
+								<td class="text-end">100%</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Market Concentration -->
+	<div class="row mb-4">
+		<div class="col-lg-6 mb-3">
+			<div class="card shadow-sm h-100">
+				<div class="card-header bg-success text-white">
+					<h5 class="mb-0"><i class="bi bi-graph-up"></i> Market Concentration</h5>
+				</div>
+				<div class="card-body">
+					<div class="text-center mb-3">
+						<h2 class="text-success">{{ "{:.1f}".format(market_concentration) }}%</h2>
+						<p class="text-muted mb-0">Top 5 companies control {{ "{:.1f}".format(market_concentration) }}% of active policies</p>
+					</div>
+					<hr>
+					<h6 class="mb-2">Top 5 Companies:</h6>
+					<ol class="list-group list-group-numbered">
+						{% for company in top_companies %}
+						<li class="list-group-item d-flex justify-content-between align-items-start">
+							<div class="ms-2 me-auto">
+								<div class="fw-bold">{{ company.name }}</div>
+								<small>{{ company.active_policies }} policies</small>
+							</div>
+							<span class="badge bg-primary rounded-pill">{{ "{:.1f}".format((company.active_policies / total_policies * 100) if total_policies else 0) }}%</span>
+						</li>
+						{% endfor %}
+					</ol>
+				</div>
+			</div>
+		</div>
+
+		<div class="col-lg-6 mb-3">
+			<div class="card shadow-sm h-100">
+				<div class="card-header bg-secondary text-white">
+					<h5 class="mb-0"><i class="bi bi-shield-check"></i> Customer Protection Metrics</h5>
+				</div>
+				<div class="card-body">
+					<div class="mb-3">
+						<div class="d-flex justify-content-between align-items-center mb-2">
+							<span><i class="bi bi-people"></i> Total Customers</span>
+							<span class="badge bg-secondary fs-5">{{ total_customers }}</span>
+						</div>
+						<div class="d-flex justify-content-between align-items-center mb-2">
+							<span><i class="bi bi-file-text"></i> Customers with Policies</span>
+							<span class="badge bg-primary fs-5">{{ customers_with_policies }}</span>
+						</div>
+						<div class="d-flex justify-content-between align-items-center mb-2">
+							<span><i class="bi bi-file-medical"></i> Customers with Claims</span>
+							<span class="badge bg-warning fs-5">{{ customers_with_claims }}</span>
+						</div>
+					</div>
+					<hr>
+				<div class="mt-3">
+					<p class="mb-2"><strong>Market Penetration:</strong></p>
+					{% set penetration_rate = (customers_with_policies / total_customers * 100) if total_customers else 0 %}
+					<div class="progress" style="height: 25px;">
+						<div id="market-penetration-bar" class="progress-bar bg-success" role="progressbar" 
+							 aria-valuenow="{{ "%.1f"|format(penetration_rate) }}" 
+							 aria-valuemin="0" aria-valuemax="100">
+							{{ "%.1f"|format(penetration_rate) }}%
+						</div>
+					</div>
+					<script>
+						document.getElementById('market-penetration-bar').style.width = '{{ "%.1f"|format(penetration_rate) }}%';
+					</script>
+				</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Quotes Performance -->
+	<div class="row mb-4">
+		<div class="col-12">
+			<div class="card shadow-sm">
+				<div class="card-header bg-primary text-white">
+					<h5 class="mb-0"><i class="bi bi-receipt"></i> Industry Quote Performance</h5>
+				</div>
+				<div class="card-body">
+					<div class="row">
+						<div class="col-md-4 text-center mb-3">
+							<h4>{{ total_quotes }}</h4>
+							<p class="text-muted mb-0">Total Quotes Generated</p>
+						</div>
+						<div class="col-md-4 text-center mb-3">
+							<h4>{{ converted_quotes }}</h4>
+							<p class="text-muted mb-0">Converted to Policies</p>
+						</div>
+						<div class="col-md-4 text-center mb-3">
+							<h4 class="text-success">{{ "{:.1f}".format(quote_conversion_rate) }}%</h4>
+							<p class="text-muted mb-0">Conversion Rate</p>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Company Compliance and Performance -->
+	<div class="row mb-4">
+		<div class="col-12">
+			<div class="card shadow-sm">
+				<div class="card-header bg-dark text-white">
+					<h5 class="mb-0"><i class="bi bi-building"></i> Company Compliance & Performance Rankings</h5>
+				</div>
+				<div class="card-body">
+					<div class="table-responsive">
+						<table class="table table-hover">
+							<thead>
+								<tr>
+									<th>#</th>
+									<th>Company Name</th>
+									<th class="text-center">Active Policies</th>
+									<th class="text-end">Total Premium (KES)</th>
+									<th class="text-center">Total Claims</th>
+									<th class="text-center">Approved</th>
+									<th class="text-center">Rejected</th>
+									<th class="text-center">Staff</th>
+									<th class="text-center">Compliance Score</th>
+								</tr>
+							</thead>
+							<tbody>
+								{% for company in company_performance %}
+								<tr>
+									<td>{{ loop.index }}</td>
+									<td>{{ company.name }}</td>
+									<td class="text-center">{{ company.active_policies }}</td>
+									<td class="text-end">{{ "{:,.2f}".format(company.total_premium) }}</td>
+									<td class="text-center">{{ company.total_claims }}</td>
+									<td class="text-center">
+										<span class="badge bg-success">{{ company.approved_claims }}</span>
+									</td>
+									<td class="text-center">
+										<span class="badge bg-danger">{{ company.rejected_claims }}</span>
+									</td>
+									<td class="text-center">{{ company.staff_count }}</td>
+									<td class="text-center">
+										{% if company.compliance_score >= 90 %}
+											<span class="badge bg-success fs-6">{{ "{:.1f}".format(company.compliance_score) }}%</span>
+										{% elif company.compliance_score >= 75 %}
+											<span class="badge bg-warning fs-6">{{ "{:.1f}".format(company.compliance_score) }}%</span>
+										{% else %}
+											<span class="badge bg-danger fs-6">{{ "{:.1f}".format(company.compliance_score) }}%</span>
+										{% endif %}
+									</td>
+								</tr>
+								{% endfor %}
+							</tbody>
+						</table>
+					</div>
+					<div class="alert alert-info mt-3 mb-0">
+						<i class="bi bi-info-circle"></i> <strong>Note:</strong> Compliance score is based on claim approval rates and operational efficiency. 
+						<span class="badge bg-success">90%+</span> Excellent | 
+						<span class="badge bg-warning">75-89%</span> Good | 
+						<span class="badge bg-danger">&lt;75%</span> Needs Review
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %}

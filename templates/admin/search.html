@@ -14,7 +14,16 @@
                 <div class="card-body p-4">
                     <form method="GET" action="{{ url_for('admin_search') }}">
                         <div class="input-group input-group-lg mb-4">
-                            <input type="text" class="form-control" name="q" placeholder="Search users, policies, claims, reports..." value="{{ request.args.get('q', '') }}">
+                            <input type="text" class="form-control" name="q" placeholder="Search users, policies, claims..." value="{{ query or '' }}" required>
+                            <select class="form-select" name="type" style="max-width: 150px;">
+                                <option value="all" {% if search_type == 'all' %}selected{% endif %}>All</option>
+                                <option value="customers" {% if search_type == 'customers' %}selected{% endif %}>Customers</option>
+                                <option value="insurers" {% if search_type == 'insurers' %}selected{% endif %}>Insurers</option>
+                                <option value="regulators" {% if search_type == 'regulators' %}selected{% endif %}>Regulators</option>
+                                <option value="policies" {% if search_type == 'policies' %}selected{% endif %}>Policies</option>
+                                <option value="claims" {% if search_type == 'claims' %}selected{% endif %}>Claims</option>
+                                <option value="companies" {% if search_type == 'companies' %}selected{% endif %}>Companies</option>
+                            </select>
                             <button class="btn btn-primary" type="submit">
                                 <i class="bi bi-search"></i> Search
                             </button>
@@ -25,12 +34,14 @@
                         <div class="col-md-6">
                             <div class="card bg-light h-100">
                                 <div class="card-body">
-                                    <h6 class="card-title">Quick Filters</h6>
+                                    <h6 class="card-title">Search In</h6>
                                     <div class="d-flex flex-wrap gap-2">
-                                        <span class="badge bg-primary">All Users</span>
-                                        <span class="badge bg-info">Customers</span>
-                                        <span class="badge bg-warning">Insurers</span>
-                                        <span class="badge bg-success">Regulators</span>
+                                        <a href="{{ url_for('admin_search', q=query, type='all') }}" class="badge {% if search_type == 'all' %}bg-primary{% else %}bg-secondary{% endif %}">All</a>
+                                        <a href="{{ url_for('admin_search', q=query, type='customers') }}" class="badge {% if search_type == 'customers' %}bg-primary{% else %}bg-secondary{% endif %}">Customers</a>
+                                        <a href="{{ url_for('admin_search', q=query, type='insurers') }}" class="badge {% if search_type == 'insurers' %}bg-primary{% else %}bg-secondary{% endif %}">Insurers</a>
+                                        <a href="{{ url_for('admin_search', q=query, type='regulators') }}" class="badge {% if search_type == 'regulators' %}bg-primary{% else %}bg-secondary{% endif %}">Regulators</a>
+                                        <a href="{{ url_for('admin_search', q=query, type='policies') }}" class="badge {% if search_type == 'policies' %}bg-primary{% else %}bg-secondary{% endif %}">Policies</a>
+                                        <a href="{{ url_for('admin_search', q=query, type='claims') }}" class="badge {% if search_type == 'claims' %}bg-primary{% else %}bg-secondary{% endif %}">Claims</a>
                                     </div>
                                 </div>
                             </div>
@@ -40,19 +51,302 @@
                                 <div class="card-body">
                                     <h6 class="card-title">Search Tips</h6>
                                     <ul class="small mb-0">
-                                        <li>Search by username, email, or ID</li>
-                                        <li>Use quotes for exact matches</li>
-                                        <li>Filter by user type or status</li>
+                                        <li>Search by username, email, name, or ID</li>
+                                        <li>For policies: policy number, vehicle reg</li>
+                                        <li>For claims: claim number, police report</li>
                                     </ul>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    {% if request.args.get('q') %}
-                    <div class="alert alert-info">
-                        <i class="bi bi-info-circle"></i> Search functionality coming soon. Your search for "<strong>{{ request.args.get('q') }}</strong>" will be processed here.
-                    </div>
+                    {% if query %}
+                        {% if total_results > 0 %}
+                        <div class="alert alert-success">
+                            <i class="bi bi-check-circle"></i> Found <strong>{{ total_results }}</strong> result(s) for "<strong>{{ query }}</strong>"
+                        </div>
+
+                        <!-- Customers Results -->
+                        {% if results.customers %}
+                        <div class="card shadow-sm mb-3">
+                            <div class="card-header bg-primary text-white">
+                                <h6 class="mb-0"><i class="bi bi-people"></i> Customers ({{ results.customers|length }})</h6>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-hover mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Username</th>
+                                                <th>Email</th>
+                                                <th>Status</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for customer in results.customers %}
+                                            <tr>
+                                                <td>{{ customer.username }}</td>
+                                                <td>{{ customer.email }}</td>
+                                                <td>
+                                                    {% if customer.is_active %}
+                                                    <span class="badge bg-success">Active</span>
+                                                    {% else %}
+                                                    <span class="badge bg-secondary">Inactive</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <a href="{{ url_for('edit_user', user_id=customer.id, user_type='customer') }}" class="btn btn-sm btn-info">
+                                                        <i class="bi bi-eye"></i> View
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Insurers Results -->
+                        {% if results.insurers %}
+                        <div class="card shadow-sm mb-3">
+                            <div class="card-header bg-info text-white">
+                                <h6 class="mb-0"><i class="bi bi-building"></i> Insurers ({{ results.insurers|length }})</h6>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-hover mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Username</th>
+                                                <th>Email</th>
+                                                <th>Staff ID</th>
+                                                <th>Company</th>
+                                                <th>Status</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for insurer in results.insurers %}
+                                            <tr>
+                                                <td>{{ insurer.username }}</td>
+                                                <td>{{ insurer.email }}</td>
+                                                <td>{{ insurer.staff_id or 'N/A' }}</td>
+                                                <td>{{ insurer.company.name if insurer.company else 'N/A' }}</td>
+                                                <td>
+                                                    {% if insurer.is_approved %}
+                                                    <span class="badge bg-success">Approved</span>
+                                                    {% else %}
+                                                    <span class="badge bg-warning text-dark">Pending</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <a href="{{ url_for('edit_user', user_id=insurer.id, user_type='insurer') }}" class="btn btn-sm btn-info">
+                                                        <i class="bi bi-eye"></i> View
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Regulators Results -->
+                        {% if results.regulators %}
+                        <div class="card shadow-sm mb-3">
+                            <div class="card-header bg-warning text-dark">
+                                <h6 class="mb-0"><i class="bi bi-shield-check"></i> Regulators ({{ results.regulators|length }})</h6>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-hover mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Username</th>
+                                                <th>Email</th>
+                                                <th>Staff ID</th>
+                                                <th>Regulatory Body</th>
+                                                <th>Status</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for regulator in results.regulators %}
+                                            <tr>
+                                                <td>{{ regulator.username }}</td>
+                                                <td>{{ regulator.email }}</td>
+                                                <td>{{ regulator.staff_id or 'N/A' }}</td>
+                                                <td>{{ regulator.regulatory_body.name if regulator.regulatory_body else 'N/A' }}</td>
+                                                <td>
+                                                    {% if regulator.is_approved %}
+                                                    <span class="badge bg-success">Approved</span>
+                                                    {% else %}
+                                                    <span class="badge bg-warning text-dark">Pending</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <a href="{{ url_for('edit_user', user_id=regulator.id, user_type='regulator') }}" class="btn btn-sm btn-info">
+                                                        <i class="bi bi-eye"></i> View
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Policies Results -->
+                        {% if results.policies %}
+                        <div class="card shadow-sm mb-3">
+                            <div class="card-header bg-success text-white">
+                                <h6 class="mb-0"><i class="bi bi-file-text"></i> Policies ({{ results.policies|length }})</h6>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-hover mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Policy Number</th>
+                                                <th>Insured Name</th>
+                                                <th>Vehicle Reg</th>
+                                                <th>Company</th>
+                                                <th>Premium (KES)</th>
+                                                <th>Status</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for policy in results.policies %}
+                                            <tr>
+                                                <td>{{ policy.policy_number }}</td>
+                                                <td>{{ policy.insured_name }}</td>
+                                                <td>{{ policy.registration_number }}</td>
+                                                <td>{{ policy.insurance_company.name if policy.insurance_company else 'N/A' }}</td>
+                                                <td>{{ "{:,.2f}".format(policy.premium_amount) }}</td>
+                                                <td>
+                                                    {% if policy.status == 'Active' %}
+                                                    <span class="badge bg-success">{{ policy.status }}</span>
+                                                    {% elif policy.status == 'Expired' %}
+                                                    <span class="badge bg-warning text-dark">{{ policy.status }}</span>
+                                                    {% else %}
+                                                    <span class="badge bg-danger">{{ policy.status }}</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <a href="{{ url_for('admin_view_policy_detail', policy_id=policy.id) }}" class="btn btn-sm btn-info">
+                                                        <i class="bi bi-eye"></i> View
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Claims Results -->
+                        {% if results.claims %}
+                        <div class="card shadow-sm mb-3">
+                            <div class="card-header bg-danger text-white">
+                                <h6 class="mb-0"><i class="bi bi-file-medical"></i> Claims ({{ results.claims|length }})</h6>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-hover mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Claim Number</th>
+                                                <th>Policy Number</th>
+                                                <th>Date of Accident</th>
+                                                <th>Location</th>
+                                                <th>Status</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for claim in results.claims %}
+                                            <tr>
+                                                <td>{{ claim.claim_number }}</td>
+                                                <td>{{ claim.policy.policy_number if claim.policy else 'N/A' }}</td>
+                                                <td>{{ claim.accident_date.strftime('%d/%m/%Y') if claim.accident_date else 'N/A' }}</td>
+                                                <td>{{ claim.accident_location[:40] + '...' if claim.accident_location and claim.accident_location|length > 40 else claim.accident_location or 'N/A' }}</td>
+                                                <td>
+                                                    {% if claim.status == 'Approved' %}
+                                                    <span class="badge bg-success">{{ claim.status }}</span>
+                                                    {% elif claim.status == 'Pending' %}
+                                                    <span class="badge bg-warning text-dark">{{ claim.status }}</span>
+                                                    {% elif claim.status == 'Rejected' %}
+                                                    <span class="badge bg-danger">{{ claim.status }}</span>
+                                                    {% else %}
+                                                    <span class="badge bg-info">{{ claim.status }}</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <a href="{{ url_for('admin_view_claim_detail', claim_id=claim.id) }}" class="btn btn-sm btn-info">
+                                                        <i class="bi bi-eye"></i> View
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Companies Results -->
+                        {% if results.companies %}
+                        <div class="card shadow-sm mb-3">
+                            <div class="card-header bg-secondary text-white">
+                                <h6 class="mb-0"><i class="bi bi-building"></i> Insurance Companies ({{ results.companies|length }})</h6>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-hover mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Company Name</th>
+                                                <th>Status</th>
+                                                <th>Insurers Count</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for company in results.companies %}
+                                            <tr>
+                                                <td>{{ company.name }}</td>
+                                                <td>
+                                                    {% if company.is_active %}
+                                                    <span class="badge bg-success">Active</span>
+                                                    {% else %}
+                                                    <span class="badge bg-secondary">Inactive</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>{{ company.insurers|length }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% else %}
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i> No results found for "<strong>{{ query }}</strong>". Try a different search term.
+                        </div>
+                        {% endif %}
                     {% else %}
                     <div class="text-center text-muted py-5">
                         <i class="bi bi-search" style="font-size: 3rem;"></i>

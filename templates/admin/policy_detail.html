@@ -1,0 +1,215 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold mb-0">Policy Details</h3>
+            <p class="text-muted mb-0">{{ policy.policy_number }}</p>
+        </div>
+        <div>
+            <a href="{{ url_for('admin_view_policies') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Policies
+            </a>
+        </div>
+    </div>
+
+    <!-- Status Alert -->
+    {% if policy.status == 'Active' %}
+        <div class="alert alert-success">
+            <i class="bi bi-check-circle"></i> <strong>Policy Status:</strong> Active (Expires on {{ policy.expiry_date.strftime('%d %B %Y') }})
+        </div>
+    {% elif policy.status == 'Cancelled' %}
+        <div class="alert alert-warning">
+            <i class="bi bi-x-octagon"></i> <strong>Policy Status:</strong> Cancelled
+            {% if policy.cancellation_date %}
+            <div class="mt-2">
+                <strong>Cancelled on:</strong> {{ policy.cancellation_date.strftime('%d %B %Y at %H:%M') }}<br>
+                <strong>Cancelled by:</strong> {{ policy.canceller.username if policy.canceller else 'Unknown' }}<br>
+                <strong>Reason:</strong> {{ policy.cancellation_reason }}
+            </div>
+            {% endif %}
+        </div>
+    {% else %}
+        <div class="alert alert-danger">
+            <i class="bi bi-x-circle"></i> <strong>Policy Status:</strong> Expired (on {{ policy.expiry_date.strftime('%d %B %Y') }})
+        </div>
+    {% endif %}
+
+    <div class="row g-4">
+        <!-- Policy Information -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-file-text"></i> Policy Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="text-muted small">Policy Number</label>
+                            <p class="fw-bold mb-0">{{ policy.policy_number }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">Policy Type</label>
+                            <p class="mb-0">
+                                <span class="badge bg-primary">{{ policy.policy_type }}</span>
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">Effective Date</label>
+                            <p class="fw-bold mb-0">{{ policy.effective_date.strftime('%d/%m/%Y') }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">Expiry Date</label>
+                            <p class="fw-bold mb-0">{{ policy.expiry_date.strftime('%d/%m/%Y') }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">Premium Amount</label>
+                            <p class="fw-bold text-success mb-0">KES {{ "{:,.2f}".format(policy.premium_amount) }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">Payment Mode</label>
+                            <p class="mb-0">{{ policy.payment_mode }}</p>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="text-muted small">Insurance Company</label>
+                            <p class="mb-0">{{ policy.insurance_company.name if policy.insurance_company else 'N/A' }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Insured Details -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-person"></i> Insured Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <label class="text-muted small">Full Name</label>
+                            <p class="fw-bold mb-0">{{ policy.insured_name }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">National ID</label>
+                            <p class="mb-0">{{ policy.national_id }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">KRA PIN</label>
+                            <p class="mb-0">{{ policy.kra_pin or 'N/A' }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">Date of Birth</label>
+                            <p class="mb-0">{{ policy.date_of_birth.strftime('%d/%m/%Y') }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">Phone Number</label>
+                            <p class="mb-0">{{ policy.phone_number }}</p>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="text-muted small">Email Address</label>
+                            <p class="mb-0">{{ policy.email_address }}</p>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="text-muted small">Postal Address</label>
+                            <p class="mb-0">{{ policy.postal_address or 'N/A' }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vehicle Details -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-car-front"></i> Vehicle Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="text-muted small">Registration Number</label>
+                            <p class="fw-bold mb-0">{{ policy.registration_number }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">Make & Model</label>
+                            <p class="mb-0">{{ policy.make_model }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">Year of Manufacture</label>
+                            <p class="mb-0">{{ policy.year_of_manufacture }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">Body Type</label>
+                            <p class="mb-0">{{ policy.body_type }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">Color</label>
+                            <p class="mb-0">{{ policy.color }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">Seating Capacity</label>
+                            <p class="mb-0">{{ policy.seating_capacity }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">Chassis Number</label>
+                            <p class="mb-0">{{ policy.chassis_number }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">Engine Number</label>
+                            <p class="mb-0">{{ policy.engine_number }}</p>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="text-muted small">Use Category</label>
+                            <p class="mb-0">{{ policy.use_category }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Coverage Details -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="bi bi-shield-check"></i> Coverage Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="text-muted small">Sum Insured</label>
+                            <p class="fw-bold text-success mb-0">KES {{ "{:,.2f}".format(policy.sum_insured) }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">Excess</label>
+                            <p class="fw-bold text-danger mb-0">KES {{ "{:,.2f}".format(policy.excess) }}</p>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="text-muted small">Optional Covers</label>
+                            <div class="mt-2">
+                                {% if policy.political_violence %}
+                                    <span class="badge bg-success me-2"><i class="bi bi-check"></i> Political Violence</span>
+                                {% endif %}
+                                {% if policy.windscreen_cover %}
+                                    <span class="badge bg-success me-2"><i class="bi bi-check"></i> Windscreen Cover</span>
+                                {% endif %}
+                                {% if policy.passenger_liability %}
+                                    <span class="badge bg-success me-2"><i class="bi bi-check"></i> Passenger Liability</span>
+                                {% endif %}
+                                {% if policy.road_rescue %}
+                                    <span class="badge bg-success me-2"><i class="bi bi-check"></i> Road Rescue</span>
+                                {% endif %}
+                                {% if not (policy.political_violence or policy.windscreen_cover or policy.passenger_liability or policy.road_rescue) %}
+                                    <span class="text-muted">No optional covers</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

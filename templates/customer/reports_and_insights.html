@@ -1,0 +1,351 @@
+{% extends "base.html" %}
+
+{% block title %}My Reports & Insights - ClearView Insurance{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+	<!-- Header -->
+	<div class="row mb-4">
+		<div class="col-md-6">
+			<h2><i class="bi bi-graph-up"></i> My Reports & Insights</h2>
+			<p class="text-muted">Your personal insurance history and analytics</p>
+		</div>
+		<div class="col-md-6 text-end">
+			<div class="btn-group" role="group">
+				<button type="button" class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown">
+					<i class="bi bi-download"></i> Export CSV
+				</button>
+				<ul class="dropdown-menu">
+					<li><a class="dropdown-item" href="{{ url_for('customer_export_reports_csv', type='summary') }}">Summary Report</a></li>
+					<li><a class="dropdown-item" href="{{ url_for('customer_export_reports_csv', type='policies') }}">My Policies</a></li>
+					<li><a class="dropdown-item" href="{{ url_for('customer_export_reports_csv', type='claims') }}">My Claims</a></li>
+				</ul>
+			</div>
+			<a href="{{ url_for('customer_dashboard') }}" class="btn btn-outline-secondary ms-2">
+				<i class="bi bi-house"></i> Dashboard
+			</a>
+		</div>
+	</div>
+
+	<!-- Personal Summary -->
+	<div class="row mb-4">
+		<div class="col-12">
+			<div class="card shadow-sm border-primary">
+				<div class="card-header bg-primary text-white">
+					<h4 class="mb-0"><i class="bi bi-person-circle"></i> My Insurance Summary</h4>
+				</div>
+				<div class="card-body">
+					<div class="row g-3">
+						<!-- Policies Summary -->
+						<div class="col-md-3">
+							<div class="card bg-light h-100">
+								<div class="card-body text-center">
+									<i class="bi bi-file-earmark-text text-primary" style="font-size: 2rem;"></i>
+									<h3 class="mt-2 mb-0">{{ total_policies }}</h3>
+									<p class="text-muted mb-1">Total Policies</p>
+									<small class="text-success"><i class="bi bi-check-circle"></i> {{ active_policies }} Active</small>
+								</div>
+							</div>
+						</div>
+						<!-- Premium Summary -->
+						<div class="col-md-3">
+							<div class="card bg-light h-100">
+								<div class="card-body text-center">
+									<i class="bi bi-currency-exchange text-success" style="font-size: 2rem;"></i>
+									<h3 class="mt-2 mb-0">KES {{ "{:,.0f}".format(active_premium) }}</h3>
+									<p class="text-muted mb-1">Active Premium</p>
+									<small class="text-muted">Total Paid: KES {{ "{:,.0f}".format(total_premium_paid) }}</small>
+								</div>
+							</div>
+						</div>
+						<!-- Claims Summary -->
+						<div class="col-md-3">
+							<div class="card bg-light h-100">
+								<div class="card-body text-center">
+									<i class="bi bi-file-earmark-medical text-warning" style="font-size: 2rem;"></i>
+									<h3 class="mt-2 mb-0">{{ total_claims }}</h3>
+									<p class="text-muted mb-1">Total Claims</p>
+									<small class="text-success"><i class="bi bi-check-circle"></i> {{ approved_claims }} Approved</small>
+								</div>
+							</div>
+						</div>
+						<!-- Quotes Summary -->
+						<div class="col-md-3">
+							<div class="card bg-light h-100">
+								<div class="card-body text-center">
+									<i class="bi bi-receipt text-info" style="font-size: 2rem;"></i>
+									<h3 class="mt-2 mb-0">{{ total_quotes }}</h3>
+									<p class="text-muted mb-1">Total Quotes</p>
+									<small class="text-success"><i class="bi bi-check-circle"></i> {{ converted_quotes }} Converted</small>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Detailed Statistics -->
+	<div class="row mb-4">
+		<div class="col-lg-6 mb-3">
+			<div class="card shadow-sm h-100">
+				<div class="card-header bg-info text-white">
+					<h5 class="mb-0"><i class="bi bi-file-earmark-text"></i> My Policy Breakdown</h5>
+				</div>
+				<div class="card-body">
+					<table class="table table-hover mb-0">
+						<thead>
+							<tr>
+								<th>Status</th>
+								<th class="text-end">Count</th>
+								<th class="text-end">Percentage</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td><span class="badge bg-success">Active</span></td>
+								<td class="text-end">{{ active_policies }}</td>
+								<td class="text-end">{{ "{:.1f}".format((active_policies / total_policies * 100) if total_policies else 0) }}%</td>
+							</tr>
+							<tr>
+								<td><span class="badge bg-secondary">Expired</span></td>
+								<td class="text-end">{{ expired_policies }}</td>
+								<td class="text-end">{{ "{:.1f}".format((expired_policies / total_policies * 100) if total_policies else 0) }}%</td>
+							</tr>
+							<tr>
+								<td><span class="badge bg-danger">Cancelled</span></td>
+								<td class="text-end">{{ cancelled_policies }}</td>
+								<td class="text-end">{{ "{:.1f}".format((cancelled_policies / total_policies * 100) if total_policies else 0) }}%</td>
+							</tr>
+							<tr class="table-primary fw-bold">
+								<td>Total</td>
+								<td class="text-end">{{ total_policies }}</td>
+								<td class="text-end">100%</td>
+							</tr>
+						</tbody>
+					</table>
+					<hr>
+					<div class="mt-2">
+						<p class="mb-1"><strong>Policy Types:</strong></p>
+						<div class="d-flex justify-content-between">
+							<span>Comprehensive:</span>
+							<span class="badge bg-primary">{{ comprehensive_policies }}</span>
+						</div>
+						<div class="d-flex justify-content-between">
+							<span>Third-Party:</span>
+							<span class="badge bg-secondary">{{ third_party_policies }}</span>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="col-lg-6 mb-3">
+			<div class="card shadow-sm h-100">
+				<div class="card-header bg-warning text-dark">
+					<h5 class="mb-0"><i class="bi bi-file-earmark-medical"></i> My Claims Breakdown</h5>
+				</div>
+				<div class="card-body">
+					<table class="table table-hover mb-0">
+						<thead>
+							<tr>
+								<th>Status</th>
+								<th class="text-end">Count</th>
+								<th class="text-end">Percentage</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td><span class="badge bg-warning text-dark">Pending</span></td>
+								<td class="text-end">{{ pending_claims }}</td>
+								<td class="text-end">{{ "{:.1f}".format((pending_claims / total_claims * 100) if total_claims else 0) }}%</td>
+							</tr>
+							<tr>
+								<td><span class="badge bg-info">Under Review</span></td>
+								<td class="text-end">{{ under_review_claims }}</td>
+								<td class="text-end">{{ "{:.1f}".format((under_review_claims / total_claims * 100) if total_claims else 0) }}%</td>
+							</tr>
+							<tr>
+								<td><span class="badge bg-success">Approved</span></td>
+								<td class="text-end">{{ approved_claims }}</td>
+								<td class="text-end">{{ "{:.1f}".format((approved_claims / total_claims * 100) if total_claims else 0) }}%</td>
+							</tr>
+							<tr>
+								<td><span class="badge bg-danger">Rejected</span></td>
+								<td class="text-end">{{ rejected_claims }}</td>
+								<td class="text-end">{{ "{:.1f}".format((rejected_claims / total_claims * 100) if total_claims else 0) }}%</td>
+							</tr>
+							<tr class="table-warning fw-bold">
+								<td>Total</td>
+								<td class="text-end">{{ total_claims }}</td>
+								<td class="text-end">100%</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Quotes Performance -->
+	<div class="row mb-4">
+		<div class="col-12">
+			<div class="card shadow-sm">
+				<div class="card-header bg-success text-white">
+					<h5 class="mb-0"><i class="bi bi-receipt"></i> My Quote History</h5>
+				</div>
+				<div class="card-body">
+					<div class="row">
+						<div class="col-md-3 text-center mb-3">
+							<h4>{{ total_quotes }}</h4>
+							<p class="text-muted mb-0">Total Quotes</p>
+						</div>
+						<div class="col-md-3 text-center mb-3">
+							<h4>{{ sent_quotes }}</h4>
+							<p class="text-muted mb-0">Received</p>
+						</div>
+						<div class="col-md-3 text-center mb-3">
+							<h4>{{ converted_quotes }}</h4>
+							<p class="text-muted mb-0">Converted to Policies</p>
+						</div>
+						<div class="col-md-3 text-center mb-3">
+							<h4 class="text-success">{{ "{:.1f}".format(quote_conversion_rate) }}%</h4>
+							<p class="text-muted mb-0">Conversion Rate</p>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Company Breakdown -->
+	<div class="row mb-4">
+		<div class="col-12">
+			<div class="card shadow-sm">
+				<div class="card-header bg-dark text-white">
+					<h5 class="mb-0"><i class="bi bi-building"></i> My Insurance Companies</h5>
+				</div>
+				<div class="card-body">
+					<div class="table-responsive">
+						<table class="table table-hover">
+							<thead>
+								<tr>
+									<th>Company Name</th>
+									<th class="text-center">My Policies</th>
+									<th class="text-end">Active Premium (KES)</th>
+									<th class="text-center">My Claims</th>
+								</tr>
+							</thead>
+							<tbody>
+								{% for company in company_breakdown %}
+								<tr>
+									<td>{{ company.name }}</td>
+									<td class="text-center">{{ company.count }}</td>
+									<td class="text-end">{{ "{:,.2f}".format(company.premium) }}</td>
+									<td class="text-center">{{ company.claims }}</td>
+								</tr>
+								{% endfor %}
+								{% if not company_breakdown %}
+								<tr>
+									<td colspan="4" class="text-center text-muted">No policies found</td>
+								</tr>
+								{% endif %}
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Recent Activity -->
+	<div class="row mb-4">
+		<div class="col-lg-6 mb-3">
+			<div class="card shadow-sm h-100">
+				<div class="card-header bg-primary text-white">
+					<h5 class="mb-0"><i class="bi bi-clock-history"></i> Recent Policies</h5>
+				</div>
+				<div class="card-body">
+					<div class="table-responsive">
+						<table class="table table-sm table-hover mb-0">
+							<thead>
+								<tr>
+									<th>Policy Number</th>
+									<th>Company</th>
+									<th>Status</th>
+								</tr>
+							</thead>
+							<tbody>
+								{% for policy in recent_policies %}
+								<tr>
+									<td>{{ policy.policy_number }}</td>
+									<td>{{ policy.insurance_company.name if policy.insurance_company else 'N/A' }}</td>
+									<td>
+										{% if policy.status == 'Active' %}
+											<span class="badge bg-success">Active</span>
+										{% elif policy.status == 'Expired' %}
+											<span class="badge bg-secondary">Expired</span>
+										{% else %}
+											<span class="badge bg-danger">Cancelled</span>
+										{% endif %}
+									</td>
+								</tr>
+								{% endfor %}
+								{% if not recent_policies %}
+								<tr>
+									<td colspan="3" class="text-center text-muted">No policies found</td>
+								</tr>
+								{% endif %}
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="col-lg-6 mb-3">
+			<div class="card shadow-sm h-100">
+				<div class="card-header bg-warning text-dark">
+					<h5 class="mb-0"><i class="bi bi-clock-history"></i> Recent Claims</h5>
+				</div>
+				<div class="card-body">
+					<div class="table-responsive">
+						<table class="table table-sm table-hover mb-0">
+							<thead>
+								<tr>
+									<th>Claim Number</th>
+									<th>Status</th>
+								</tr>
+							</thead>
+							<tbody>
+								{% for claim in recent_claims %}
+								<tr>
+									<td>{{ claim.claim_number }}</td>
+									<td>
+										{% if claim.status == 'Approved' %}
+											<span class="badge bg-success">Approved</span>
+										{% elif claim.status == 'Pending' %}
+											<span class="badge bg-warning">Pending</span>
+										{% elif claim.status == 'Under Review' %}
+											<span class="badge bg-info">Under Review</span>
+										{% else %}
+											<span class="badge bg-danger">Rejected</span>
+										{% endif %}
+									</td>
+								</tr>
+								{% endfor %}
+								{% if not recent_claims %}
+								<tr>
+									<td colspan="2" class="text-center text-muted">No claims found</td>
+								</tr>
+								{% endif %}
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %}

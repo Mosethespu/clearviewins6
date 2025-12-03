@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}Request Policy Access - {{ policy.policy_number }} - ClearView Insurance{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+	<div class="row">
+		<!-- Sidebar -->
+		<aside class="col-12 col-md-3 col-lg-2 mb-4 mb-md-0">
+			<div class="dashboard-sidebar p-3 bg-light rounded shadow-sm">
+				<h6 class="text-uppercase text-muted mb-3">User Options</h6>
+				<div class="d-grid gap-2">
+					<a class="btn btn-outline-primary sidebar-btn" href="{{ url_for('customer_dashboard') }}">
+						<i class="bi bi-house"></i> Dashboard
+					</a>
+					<a class="btn btn-outline-primary sidebar-btn" href="{{ url_for('customer_search') }}">
+						<i class="bi bi-search"></i> Search
+					</a>
+					<a class="btn btn-primary sidebar-btn" href="{{ url_for('customer_policy_management') }}">
+						<i class="bi bi-shield-check"></i> Policy Management
+					</a>
+					<a class="btn btn-outline-primary sidebar-btn" href="{{ url_for('customer_search_vehicle') }}">
+						<i class="bi bi-car-front"></i> Search Vehicle
+					</a>
+					<a class="btn btn-outline-primary sidebar-btn" href="{{ url_for('customer_reports_and_insights') }}">
+						<i class="bi bi-graph-up"></i> Reports & Insights
+					</a>
+				</div>
+			</div>
+		</aside>
+
+		<!-- Main content -->
+		<main class="col-12 col-md-9 col-lg-10">
+			<div class="px-2 px-md-3">
+				<!-- Header -->
+				<div class="d-flex justify-content-between align-items-center mb-4">
+					<div>
+						<h2><i class="bi bi-key"></i> Request Policy Access</h2>
+						<p class="text-muted mb-0">Submit request for full access to {{ policy.policy_number }}</p>
+					</div>
+					<div>
+						<a href="{{ url_for('customer_policy_management') }}" class="btn btn-outline-secondary">
+							<i class="bi bi-arrow-left"></i> Cancel
+						</a>
+					</div>
+				</div>
+
+				<div class="row justify-content-center">
+					<div class="col-lg-8">
+						<!-- Policy Summary -->
+						<div class="card shadow-sm mb-4">
+							<div class="card-header bg-primary text-white">
+								<h5 class="mb-0"><i class="bi bi-file-text"></i> Policy Details</h5>
+							</div>
+							<div class="card-body">
+								<div class="row">
+									<div class="col-md-6">
+										<p><strong>Policy Number:</strong> {{ policy.policy_number }}</p>
+										<p><strong>Vehicle:</strong> {{ policy.registration_number }} - {{ policy.make_model }}</p>
+									</div>
+									<div class="col-md-6">
+										<p><strong>Insurance Company:</strong> {{ policy.insurance_company.name if policy.insurance_company else 'N/A' }}</p>
+										<p><strong>Status:</strong> 
+											<span class="badge {% if policy.status == 'Active' %}bg-success{% else %}bg-secondary{% endif %}">
+												{{ policy.status }}
+											</span>
+										</p>
+									</div>
+								</div>
+							</div>
+						</div>
+
+						<!-- Request Form -->
+						<div class="card shadow-sm mb-4">
+							<div class="card-header bg-success text-white">
+								<h5 class="mb-0"><i class="bi bi-send"></i> Access Request</h5>
+							</div>
+							<div class="card-body">
+								<form method="POST">
+									<div class="mb-4">
+										<label for="reason" class="form-label">Reason for Access Request (Optional)</label>
+										<textarea class="form-control" 
+												  id="reason" 
+												  name="reason" 
+												  rows="4"
+												  placeholder="e.g., I am the new owner of this vehicle and need to manage the policy..."></textarea>
+										<div class="form-text">Provide any relevant information to help the insurer process your request</div>
+									</div>
+
+									<div class="alert alert-info">
+										<i class="bi bi-info-circle"></i>
+										<strong>What happens next?</strong>
+										<ul class="mb-0 mt-2">
+											<li>Your request will be sent to {{ policy.insurance_company.name if policy.insurance_company else 'the insurer' }}</li>
+											<li>The insurer will review your request</li>
+											<li>If approved, the policy will be added to your account</li>
+											<li>You will receive notification of the decision</li>
+										</ul>
+									</div>
+
+									<div class="d-grid gap-2">
+										<button type="submit" class="btn btn-success btn-lg">
+											<i class="bi bi-send"></i> Submit Request
+										</button>
+										<a href="{{ url_for('customer_policy_management') }}" class="btn btn-outline-secondary">
+											Cancel
+										</a>
+									</div>
+								</form>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</main>
+	</div>
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+{% endblock %}

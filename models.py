@@ -304,3 +304,87 @@ class Quote(db.Model):
 	insurance_company = db.relationship('InsuranceCompany', backref='quotes')
 	creator = db.relationship('Insurer', backref='quotes_created')
 
+
+class CustomerMonitoredPolicy(db.Model):
+	"""Policies that customers are monitoring (view-only access)"""
+	id = db.Column(db.Integer, primary_key=True)
+	customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=False)
+	policy_id = db.Column(db.Integer, db.ForeignKey('policy.id'), nullable=False)
+	date_added = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+	
+	# Relationships
+	customer = db.relationship('Customer', backref='monitored_policies')
+	policy = db.relationship('Policy', backref='monitoring_customers')
+	
+	# Unique constraint: one customer can't monitor the same policy twice
+	__table_args__ = (db.UniqueConstraint('customer_id', 'policy_id', name='_customer_policy_monitor_uc'),)
+
+
+class CustomerPolicyRequest(db.Model):
+	"""Customer requests to add a policy to their account (full access)"""
+	id = db.Column(db.Integer, primary_key=True)
+	customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=False)
+	policy_id = db.Column(db.Integer, db.ForeignKey('policy.id'), nullable=False)
+	request_type = db.Column(db.String(20), default='access', nullable=False)  # access
+	status = db.Column(db.String(20), default='pending', nullable=False)  # pending, approved, rejected
+	request_date = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+	request_reason = db.Column(db.Text, nullable=True)
+	
+	# Review details
+	reviewed_by = db.Column(db.Integer, db.ForeignKey('insurer.id'), nullable=True)
+	reviewed_date = db.Column(db.DateTime, nullable=True)
+	review_notes = db.Column(db.Text, nullable=True)
+	rejection_reason = db.Column(db.Text, nullable=True)
+	
+	# Relationships
+	customer = db.relationship('Customer', backref='policy_requests')
+	policy = db.relationship('Policy', backref='access_requests')
+	reviewer = db.relationship('Insurer', backref='reviewed_policy_requests')
+
+
+class PolicyCancellationRequest(db.Model):
+	"""Customer requests to cancel their policy"""
+	id = db.Column(db.Integer, primary_key=True)
+	customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=False)
+	policy_id = db.Column(db.Integer, db.ForeignKey('policy.id'), nullable=False)
+	request_date = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+	cancellation_reason = db.Column(db.Text, nullable=False)
+	status = db.Column(db.String(20), default='pending', nullable=False)  # pending, approved, rejected
+	
+	# Review details
+	reviewed_by = db.Column(db.Integer, db.ForeignKey('insurer.id'), nullable=True)
+	reviewed_date = db.Column(db.DateTime, nullable=True)
+	review_notes = db.Column(db.Text, nullable=True)
+	rejection_reason = db.Column(db.Text, nullable=True)
+	
+	# Relationships
+	customer = db.relationship('Customer', backref='cancellation_requests')
+	policy = db.relationship('Policy', backref='cancellation_requests')
+	reviewer = db.relationship('Insurer', backref='reviewed_cancellation_requests')
+
+
+class PolicyRenewalRequest(db.Model):
+	"""Customer requests to renew their policy"""
+	id = db.Column(db.Integer, primary_key=True)
+	customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=False)
+	policy_id = db.Column(db.Integer, db.ForeignKey('policy.id'), nullable=False)
+	request_date = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+	
+	# New renewal dates (auto-calculated)
+	new_effective_date = db.Column(db.Date, nullable=False)
+	new_expiry_date = db.Column(db.Date, nullable=False)
+	renewal_premium = db.Column(db.Float, nullable=True)  # Can be adjusted by insurer
+	
+	status = db.Column(db.String(20), default='pending', nullable=False)  # pending, approved, rejected
+	
+	# Review details
+	reviewed_by = db.Column(db.Integer, db.ForeignKey('insurer.id'), nullable=True)
+	reviewed_date = db.Column(db.DateTime, nullable=True)
+	review_notes = db.Column(db.Text, nullable=True)
+	rejection_reason = db.Column(db.Text, nullable=True)
+	
+	# Relationships
+	customer = db.relationship('Customer', backref='renewal_requests')
+	policy = db.relationship('Policy', backref='renewal_requests')
+	reviewer = db.relationship('Insurer', backref='reviewed_renewal_requests')
+

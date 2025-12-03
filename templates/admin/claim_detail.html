@@ -1,0 +1,310 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold mb-0">Claim Details</h3>
+            <p class="text-muted mb-0">{{ claim.claim_number }}</p>
+        </div>
+        <div>
+            <a href="{{ url_for('admin_view_claims') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Claims
+            </a>
+        </div>
+    </div>
+
+    <!-- Status Alert -->
+    {% if claim.status == 'Approved' %}
+        <div class="alert alert-success">
+            <i class="bi bi-check-circle"></i> <strong>Claim Status:</strong> Approved
+            {% if claim.approval_date %}
+                on {{ claim.approval_date.strftime('%d %B %Y at %H:%M') }}
+            {% endif %}
+        </div>
+    {% elif claim.status == 'Rejected' %}
+        <div class="alert alert-danger">
+            <i class="bi bi-x-circle"></i> <strong>Claim Status:</strong> Rejected
+            {% if claim.rejection_reason %}
+                <div class="mt-2"><strong>Reason:</strong> {{ claim.rejection_reason }}</div>
+            {% endif %}
+        </div>
+    {% elif claim.status == 'Under Review' %}
+        <div class="alert alert-info">
+            <i class="bi bi-hourglass-split"></i> <strong>Claim Status:</strong> Under Review
+        </div>
+    {% else %}
+        <div class="alert alert-warning">
+            <i class="bi bi-clock"></i> <strong>Claim Status:</strong> Pending
+        </div>
+    {% endif %}
+
+    <div class="row g-4">
+        <!-- Policy Information -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-file-text"></i> Policy Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <label class="text-muted small">Policy Number</label>
+                            <p class="fw-bold mb-0">
+                                <a href="{{ url_for('admin_view_policy_detail', policy_id=claim.policy.id) }}">
+                                    {{ claim.policy.policy_number }}
+                                </a>
+                            </p>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="text-muted small">Insurance Company</label>
+                            <p class="mb-0">{{ claim.insurance_company.name if claim.insurance_company else 'N/A' }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">Insured Name</label>
+                            <p class="mb-0">{{ claim.policy.insured_name }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">Vehicle Registration</label>
+                            <p class="mb-0">{{ claim.policy.registration_number }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Claim Information -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-clipboard"></i> Claim Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <label class="text-muted small">Claim Number</label>
+                            <p class="fw-bold mb-0">{{ claim.claim_number }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">Date Submitted</label>
+                            <p class="mb-0">{{ claim.date_submitted.strftime('%d/%m/%Y %H:%M') }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">Last Updated</label>
+                            <p class="mb-0">{{ claim.last_updated.strftime('%d/%m/%Y %H:%M') if claim.last_updated else 'N/A' }}</p>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="text-muted small">Created By</label>
+                            <p class="mb-0">{{ claim.creator.username if claim.creator else 'Unknown' }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Accident Details -->
+        <div class="col-lg-12">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Accident Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="text-muted small">Date of Accident</label>
+                            <p class="fw-bold mb-0">{{ claim.accident_date.strftime('%d/%m/%Y') }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="text-muted small">Time of Accident</label>
+                            <p class="fw-bold mb-0">{{ claim.accident_time.strftime('%H:%M') if claim.accident_time else 'N/A' }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="text-muted small">Weather Conditions</label>
+                            <p class="mb-0">{{ claim.weather_conditions }}</p>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="text-muted small">Location of Accident</label>
+                            <p class="mb-0">{{ claim.accident_location }}</p>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="text-muted small">Description of Accident</label>
+                            <p class="mb-0">{{ claim.accident_description }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">Police Report Number</label>
+                            <p class="mb-0">{{ claim.police_report_number }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">Vehicle Towed</label>
+                            <p class="mb-0">
+                                {% if claim.vehicle_towed %}
+                                    <span class="badge bg-warning text-dark">Yes</span>
+                                    {% if claim.tow_location %}
+                                        - {{ claim.tow_location }}
+                                    {% endif %}
+                                {% else %}
+                                    <span class="badge bg-secondary">No</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Damage & Injuries -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="bi bi-tools"></i> Damage Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <label class="text-muted small">Damage to Insured Vehicle</label>
+                            <p class="mb-0">{{ claim.damage_insured_vehicle }}</p>
+                        </div>
+                        {% if claim.damage_third_party %}
+                        <div class="col-md-12">
+                            <label class="text-muted small">Damage to Third Party</label>
+                            <p class="mb-0">{{ claim.damage_third_party }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Injuries -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="bi bi-heart-pulse"></i> Injury Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        {% if claim.injuries_driver_passengers %}
+                        <div class="col-md-12">
+                            <label class="text-muted small">Injuries to Driver/Passengers</label>
+                            <p class="mb-0">{{ claim.injuries_driver_passengers }}</p>
+                        </div>
+                        {% endif %}
+                        {% if claim.injuries_third_parties %}
+                        <div class="col-md-12">
+                            <label class="text-muted small">Injuries to Third Parties</label>
+                            <p class="mb-0">{{ claim.injuries_third_parties }}</p>
+                        </div>
+                        {% endif %}
+                        {% if not claim.injuries_driver_passengers and not claim.injuries_third_parties %}
+                        <div class="col-md-12">
+                            <p class="text-muted mb-0">No injuries reported</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Witness Information -->
+        {% if claim.witness_name %}
+        <div class="col-lg-12">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="bi bi-eye"></i> Witness Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="text-muted small">Witness Name</label>
+                            <p class="mb-0">{{ claim.witness_name }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="text-muted small">Witness Contact</label>
+                            <p class="mb-0">{{ claim.witness_contact }}</p>
+                        </div>
+                        {% if claim.witness_statement %}
+                        <div class="col-md-12">
+                            <label class="text-muted small">Witness Statement</label>
+                            <p class="mb-0">{{ claim.witness_statement }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Review Information -->
+        {% if claim.review_notes %}
+        <div class="col-lg-12">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-clipboard-check"></i> Review Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        {% if claim.reviewer %}
+                        <div class="col-md-6">
+                            <label class="text-muted small">Reviewed By</label>
+                            <p class="mb-0">{{ claim.reviewer.username }}</p>
+                        </div>
+                        {% endif %}
+                        {% if claim.review_date %}
+                        <div class="col-md-6">
+                            <label class="text-muted small">Review Date</label>
+                            <p class="mb-0">{{ claim.review_date.strftime('%d/%m/%Y %H:%M') }}</p>
+                        </div>
+                        {% endif %}
+                        <div class="col-md-12">
+                            <label class="text-muted small">Review Notes</label>
+                            <p class="mb-0">{{ claim.review_notes }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Fraud Check Results -->
+        {% if claim.fraud_check_performed %}
+        <div class="col-lg-12">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="bi bi-shield-exclamation"></i> Fraud Check Results</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="text-muted small">Check Date</label>
+                            <p class="mb-0">{{ claim.fraud_check_date.strftime('%d/%m/%Y %H:%M') if claim.fraud_check_date else 'N/A' }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="text-muted small">Risk Score</label>
+                            <p class="mb-0">
+                                {% if claim.fraud_risk_score %}
+                                    {% if claim.fraud_risk_score < 30 %}
+                                        <span class="badge bg-success">Low ({{ claim.fraud_risk_score }})</span>
+                                    {% elif claim.fraud_risk_score < 70 %}
+                                        <span class="badge bg-warning text-dark">Medium ({{ claim.fraud_risk_score }})</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">High ({{ claim.fraud_risk_score }})</span>
+                                    {% endif %}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </p>
+                        </div>
+                        {% if claim.fraud_check_result %}
+                        <div class="col-md-12">
+                            <label class="text-muted small">Check Result</label>
+                            <p class="mb-0">{{ claim.fraud_check_result }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

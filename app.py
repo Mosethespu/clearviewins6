@@ -1,15 +1,17 @@
 
-from flask import Flask, render_template, redirect, url_for, flash, request, jsonify, send_from_directory, session
+from flask import Flask, render_template, redirect, url_for, flash, request, jsonify, send_from_directory, session, Response
 from config import Config
 from extension import db, login_manager, migrate, cache
-from models import Admin, Customer, Insurer, Regulator, InsuranceCompany, InsurerRequest, RegulatoryBody, RegulatorRequest, Policy, PolicyPhoto, Claim, ClaimDocument, PremiumRate, Quote
+from models import Admin, Customer, Insurer, Regulator, InsuranceCompany, InsurerRequest, RegulatoryBody, RegulatorRequest, Policy, PolicyPhoto, Claim, ClaimDocument, PremiumRate, Quote, CustomerMonitoredPolicy, CustomerPolicyRequest, PolicyCancellationRequest, PolicyRenewalRequest
 from forms import SignupForm, LoginForm, InsurerAccessRequestForm, RegulatorAccessRequestForm, PolicyCreationForm, ClaimForm
 from flask_login import login_user, logout_user, current_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from decorators import admin_required, customer_required, insurer_required, regulator_required
-from datetime import datetime
+from datetime import datetime, date, timedelta
 import os
+import csv
+from io import StringIO
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -264,7 +266,85 @@ def admin_dashboard():
 @login_required
 @admin_required
 def admin_search():
-	return render_template('admin/search.html')
+	query = request.args.get('q', '').strip()
+	search_type = request.args.get('type', 'all')
+	
+	results = {
+		'customers': [],
+		'insurers': [],
+		'regulators': [],
+		'policies': [],
+		'claims': [],
+		'companies': []
+	}
+	
+	if query:
+		search_pattern = f"%{query}%"
+		
+		# Search customers (only username and email exist)
+		if search_type in ['all', 'customers']:
+			results['customers'] = Customer.query.filter(
+				db.or_(
+					Customer.username.ilike(search_pattern),
+					Customer.email.ilike(search_pattern)
+				)
+			).limit(20).all()
+		
+		# Search insurers (only username, email, and staff_id exist)
+		if search_type in ['all', 'insurers']:
+			results['insurers'] = Insurer.query.filter(
+				db.or_(
+					Insurer.username.ilike(search_pattern),
+					Insurer.email.ilike(search_pattern),
+					Insurer.staff_id.ilike(search_pattern)
+				)
+			).limit(20).all()
+		
+		# Search regulators (only username, email, and staff_id exist)
+		if search_type in ['all', 'regulators']:
+			results['regulators'] = Regulator.query.filter(
+				db.or_(
+					Regulator.username.ilike(search_pattern),
+					Regulator.email.ilike(search_pattern),
+					Regulator.staff_id.ilike(search_pattern)
+				)
+			).limit(20).all()
+		
+		# Search policies
+		if search_type in ['all', 'policies']:
+			results['policies'] = Policy.query.filter(
+				db.or_(
+					Policy.policy_number.ilike(search_pattern),
+					Policy.insured_name.ilike(search_pattern),
+					Policy.email_address.ilike(search_pattern),
+					Policy.registration_number.ilike(search_pattern),
+					Policy.national_id.ilike(search_pattern)
+				)
+			).limit(20).all()
+		
+		# Search claims
+		if search_type in ['all', 'claims']:
+			results['claims'] = Claim.query.filter(
+				db.or_(
+					Claim.claim_number.ilike(search_pattern),
+					Claim.police_report_number.ilike(search_pattern)
+				)
+			).limit(20).all()
+		
+		# Search insurance companies
+		if search_type in ['all', 'companies']:
+			results['companies'] = InsuranceCompany.query.filter(
+				InsuranceCompany.name.ilike(search_pattern)
+			).limit(20).all()
+	
+	total_results = sum(len(v) for v in results.values())
+	
+	return render_template('admin/search.html', 
+		query=query,
+		search_type=search_type,
+		results=results,
+		total_results=total_results
+	)
 
 @app.route('/admin/insurer-requests')
 @login_required
@@ -471,6 +551,513 @@ def edit_user(user_type, user_id):
 	
 	return render_template('admin/edituser.html', user=user, user_type=user_type)
 
+@app.route('/admin/reports-and-insights')
+@login_required
+@admin_required
+def admin_reports_and_insights():
+	"""View comprehensive system-wide reports and insights"""
+	
+	# Get all data
+	all_customers = Customer.query.all()
+	all_insurers = Insurer.query.all()
+	all_regulators = Regulator.query.all()
+	all_companies = InsuranceCompany.query.filter_by(is_active=True).all()
+	all_policies = Policy.query.all()
+	all_claims = Claim.query.all()
+	all_quotes = Quote.query.all()
+	
+	# User statistics
+	total_customers = len(all_customers)
+	active_customers = sum(1 for c in all_customers if c.is_active)
+	total_insurers = len(all_insurers)
+	approved_insurers = sum(1 for i in all_insurers if i.is_approved)
+	total_regulators = len(all_regulators)
+	approved_regulators = sum(1 for r in all_regulators if r.is_approved)
+	
+	# Policy statistics
+	total_policies = len(all_policies)
+	active_policies = sum(1 for p in all_policies if p.status == 'Active')
+	expired_policies = sum(1 for p in all_policies if p.status == 'Expired')
+	cancelled_policies = sum(1 for p in all_policies if p.status == 'Cancelled')
+	total_premium = sum(p.premium_amount for p in all_policies if p.status == 'Active')
+	
+	# Claims statistics
+	total_claims = len(all_claims)
+	pending_claims = sum(1 for c in all_claims if c.status == 'Pending')
+	under_review_claims = sum(1 for c in all_claims if c.status == 'Under Review')
+	approved_claims = sum(1 for c in all_claims if c.status == 'Approved')
+	rejected_claims = sum(1 for c in all_claims if c.status == 'Rejected')
+	
+	# Quotes statistics
+	total_quotes = len(all_quotes)
+	sent_quotes = sum(1 for q in all_quotes if q.status == 'Sent')
+	converted_quotes = sum(1 for q in all_quotes if q.status == 'Converted')
+	expired_quotes = sum(1 for q in all_quotes if q.status == 'Expired')
+	quote_conversion_rate = (converted_quotes / total_quotes * 100) if total_quotes else 0
+	
+	# Company rankings
+	company_rankings = []
+	for company in all_companies:
+		comp_policies = Policy.query.filter_by(insurance_company_id=company.id).all()
+		comp_active = sum(1 for p in comp_policies if p.status == 'Active')
+		comp_premium = sum(p.premium_amount for p in comp_policies if p.status == 'Active')
+		comp_claims = Claim.query.join(Policy).filter(Policy.insurance_company_id == company.id).all()
+		comp_approved_claims = sum(1 for c in comp_claims if c.status == 'Approved')
+		comp_staff = Insurer.query.filter_by(insurance_company_id=company.id, is_approved=True).count()
+		
+		company_rankings.append({
+			'name': company.name,
+			'active_policies': comp_active,
+			'total_premium': comp_premium,
+			'approved_claims': comp_approved_claims,
+			'staff_count': comp_staff
+		})
+	
+	# Sort by active policies (descending)
+	company_rankings.sort(key=lambda x: x['active_policies'], reverse=True)
+	
+	# User activity across all companies
+	user_activity = []
+	for insurer in all_insurers:
+		if insurer.is_approved:
+			user_policies = Policy.query.filter_by(created_by=insurer.id).count()
+			user_claims = Claim.query.filter_by(created_by=insurer.id).count()
+			user_quotes = Quote.query.filter_by(created_by=insurer.id).count()
+			
+			user_activity.append({
+				'username': insurer.username,
+				'email': insurer.email,
+				'company': insurer.company.name if insurer.company else 'N/A',
+				'policies_created': user_policies,
+				'claims_processed': user_claims,
+				'quotes_generated': user_quotes
+			})
+	
+	# Sort by policies created
+	user_activity.sort(key=lambda x: x['policies_created'], reverse=True)
+	
+	# Recent requests
+	pending_insurer_requests = InsurerRequest.query.filter_by(status='pending').count()
+	pending_regulator_requests = RegulatorRequest.query.filter_by(status='pending').count()
+	
+	return render_template('admin/reports_and_insights.html',
+		# User stats
+		total_customers=total_customers,
+		active_customers=active_customers,
+		total_insurers=total_insurers,
+		approved_insurers=approved_insurers,
+		total_regulators=total_regulators,
+		approved_regulators=approved_regulators,
+		# Policy stats
+		total_policies=total_policies,
+		active_policies=active_policies,
+		expired_policies=expired_policies,
+		cancelled_policies=cancelled_policies,
+		total_premium=total_premium,
+		# Claims stats
+		total_claims=total_claims,
+		pending_claims=pending_claims,
+		under_review_claims=under_review_claims,
+		approved_claims=approved_claims,
+		rejected_claims=rejected_claims,
+		# Quotes stats
+		total_quotes=total_quotes,
+		sent_quotes=sent_quotes,
+		converted_quotes=converted_quotes,
+		expired_quotes=expired_quotes,
+		quote_conversion_rate=quote_conversion_rate,
+		# Company data
+		total_companies=len(all_companies),
+		company_rankings=company_rankings,
+		user_activity=user_activity,
+		# Requests
+		pending_insurer_requests=pending_insurer_requests,
+		pending_regulator_requests=pending_regulator_requests
+	)
+
+@app.route('/admin/export-reports-csv')
+@login_required
+@admin_required
+def admin_export_reports_csv():
+	"""Export admin reports data to CSV"""
+	si = StringIO()
+	writer = csv.writer(si)
+	
+	# Get export type from query parameter
+	export_type = request.args.get('type', 'summary')
+	
+	if export_type == 'companies':
+		writer.writerow(['Company Name', 'Active Policies', 'Total Premium (KES)', 'Approved Claims', 'Staff Count'])
+		all_companies = InsuranceCompany.query.filter_by(is_active=True).all()
+		for company in all_companies:
+			comp_policies = Policy.query.filter_by(insurance_company_id=company.id).all()
+			comp_active = sum(1 for p in comp_policies if p.status == 'Active')
+			comp_premium = sum(p.premium_amount for p in comp_policies if p.status == 'Active')
+			comp_claims = Claim.query.join(Policy).filter(Policy.insurance_company_id == company.id).all()
+			comp_approved_claims = sum(1 for c in comp_claims if c.status == 'Approved')
+			comp_staff = Insurer.query.filter_by(insurance_company_id=company.id, is_approved=True).count()
+			writer.writerow([company.name, comp_active, f'{comp_premium:.2f}', comp_approved_claims, comp_staff])
+	
+	elif export_type == 'users':
+		writer.writerow(['Username', 'Email', 'Role', 'Company/Body', 'Status'])
+		customers = Customer.query.all()
+		insurers = Insurer.query.all()
+		regulators = Regulator.query.all()
+		for c in customers:
+			writer.writerow([c.username, c.email, 'Customer', 'N/A', 'Active' if c.is_active else 'Inactive'])
+		for i in insurers:
+			writer.writerow([i.username, i.email, 'Insurer', i.company.name if i.company else 'N/A', 'Approved' if i.is_approved else 'Pending'])
+		for r in regulators:
+			writer.writerow([r.username, r.email, 'Regulator', r.regulatory_body.name if r.regulatory_body else 'N/A', 'Approved' if r.is_approved else 'Pending'])
+	
+	elif export_type == 'policies':
+		writer.writerow(['Policy Number', 'Company', 'Policyholder', 'Type', 'Premium (KES)', 'Status', 'Start Date', 'Expiry Date'])
+		all_policies = Policy.query.all()
+		for p in all_policies:
+			writer.writerow([
+				p.policy_number, 
+				p.insurance_company.name if p.insurance_company else 'N/A',
+				p.policyholder_name,
+				p.policy_type,
+				f'{p.premium_amount:.2f}',
+				p.status,
+				p.start_date.strftime('%Y-%m-%d') if p.start_date else 'N/A',
+				p.expiry_date.strftime('%Y-%m-%d') if p.expiry_date else 'N/A'
+			])
+	
+	elif export_type == 'claims':
+		writer.writerow(['Claim Number', 'Policy Number', 'Company', 'Status', 'Date Submitted'])
+		all_claims = Claim.query.all()
+		for c in all_claims:
+			writer.writerow([
+				c.claim_number,
+				c.policy.policy_number if c.policy else 'N/A',
+				c.insurance_company.name if c.insurance_company else 'N/A',
+				c.status,
+				c.date_submitted.strftime('%Y-%m-%d') if c.date_submitted else 'N/A'
+			])
+	
+	else:  # summary
+		writer.writerow(['Metric', 'Value'])
+		customers = Customer.query.all()
+		insurers = Insurer.query.all()
+		regulators = Regulator.query.all()
+		policies = Policy.query.all()
+		claims = Claim.query.all()
+		
+		writer.writerow(['Total Customers', len(customers)])
+		writer.writerow(['Active Customers', sum(1 for c in customers if c.is_active)])
+		writer.writerow(['Total Insurers', len(insurers)])
+		writer.writerow(['Approved Insurers', sum(1 for i in insurers if i.is_approved)])
+		writer.writerow(['Total Regulators', len(regulators)])
+		writer.writerow(['Approved Regulators', sum(1 for r in regulators if r.is_approved)])
+		writer.writerow(['Total Policies', len(policies)])
+		writer.writerow(['Active Policies', sum(1 for p in policies if p.status == 'Active')])
+		writer.writerow(['Total Premium (KES)', f'{sum(p.premium_amount for p in policies if p.status == "Active"):.2f}'])
+		writer.writerow(['Total Claims', len(claims)])
+		writer.writerow(['Approved Claims', sum(1 for c in claims if c.status == 'Approved')])
+	
+	output = si.getvalue()
+	si.close()
+	
+	return Response(
+		output,
+		mimetype='text/csv',
+		headers={'Content-Disposition': f'attachment; filename=clearview_admin_report_{export_type}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'}
+	)
+
+@app.route('/admin/view-policies')
+@login_required
+@admin_required
+def admin_view_policies():
+	"""View all policies with filtering and export capabilities"""
+	from datetime import datetime
+	
+	# Get filter parameters
+	status_filter = request.args.get('status', '')
+	company_filter = request.args.get('company_id', '')
+	start_date = request.args.get('start_date', '')
+	end_date = request.args.get('end_date', '')
+	
+	# Base query
+	query = Policy.query
+	
+	# Apply filters
+	if status_filter:
+		query = query.filter_by(status=status_filter)
+	
+	if company_filter:
+		query = query.filter_by(insurance_company_id=company_filter)
+	
+	if start_date:
+		try:
+			start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+			query = query.filter(Policy.effective_date >= start_dt)
+		except ValueError:
+			pass
+	
+	if end_date:
+		try:
+			end_dt = datetime.strptime(end_date, '%Y-%m-%d')
+			query = query.filter(Policy.expiry_date <= end_dt)
+		except ValueError:
+			pass
+	
+	# Get filtered policies
+	policies = query.all()
+	
+	# Calculate summary statistics
+	total_policies = len(policies)
+	active_policies = sum(1 for p in policies if p.status == 'Active')
+	expired_policies = sum(1 for p in policies if p.status == 'Expired')
+	cancelled_policies = sum(1 for p in policies if p.status == 'Cancelled')
+	total_premium = sum(p.premium_amount for p in policies)
+	
+	# Get all companies for filter dropdown
+	companies = InsuranceCompany.query.all()
+	
+	return render_template('admin/view_policies.html',
+		policies=policies,
+		companies=companies,
+		total_policies=total_policies,
+		active_policies=active_policies,
+		expired_policies=expired_policies,
+		cancelled_policies=cancelled_policies,
+		total_premium=total_premium,
+		status_filter=status_filter,
+		company_filter=company_filter,
+		start_date=start_date,
+		end_date=end_date
+	)
+
+@app.route('/admin/export-policies-csv')
+@login_required
+@admin_required
+def admin_export_policies_csv():
+	"""Export filtered policies to CSV"""
+	from datetime import datetime
+	
+	# Get same filter parameters
+	status_filter = request.args.get('status', '')
+	company_filter = request.args.get('company_id', '')
+	start_date = request.args.get('start_date', '')
+	end_date = request.args.get('end_date', '')
+	
+	# Base query
+	query = Policy.query
+	
+	# Apply filters
+	if status_filter:
+		query = query.filter_by(status=status_filter)
+	
+	if company_filter:
+		query = query.filter_by(insurance_company_id=company_filter)
+	
+	if start_date:
+		try:
+			start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+			query = query.filter(Policy.effective_date >= start_dt)
+		except ValueError:
+			pass
+	
+	if end_date:
+		try:
+			end_dt = datetime.strptime(end_date, '%Y-%m-%d')
+			query = query.filter(Policy.expiry_date <= end_dt)
+		except ValueError:
+			pass
+	
+	# Get filtered policies
+	policies = query.all()
+	
+	# Create CSV
+	si = StringIO()
+	writer = csv.writer(si)
+	
+	# Write header
+	writer.writerow(['Policy Number', 'Customer Email', 'Insurance Company', 'Vehicle Registration', 
+					 'Premium (KES)', 'Status', 'Start Date', 'End Date', 'Created Date'])
+	
+	# Write data
+	for policy in policies:
+		writer.writerow([
+			policy.policy_number or '',
+			policy.email_address or '',
+			policy.insurance_company.name if policy.insurance_company else '',
+			policy.registration_number or '',
+			f'{policy.premium_amount:.2f}',
+			policy.status or '',
+			policy.effective_date.strftime('%Y-%m-%d') if policy.effective_date else '',
+			policy.expiry_date.strftime('%Y-%m-%d') if policy.expiry_date else '',
+			policy.date_entered.strftime('%Y-%m-%d %H:%M') if policy.date_entered else ''
+		])
+	
+	output = si.getvalue()
+	si.close()
+	
+	return Response(
+		output,
+		mimetype='text/csv',
+		headers={'Content-Disposition': f'attachment; filename=clearview_policies_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'}
+	)
+
+@app.route('/admin/view-claims')
+@login_required
+@admin_required
+def admin_view_claims():
+	"""View all claims with filtering and export capabilities"""
+	from datetime import datetime
+	
+	# Get filter parameters
+	status_filter = request.args.get('status', '')
+	company_filter = request.args.get('company_id', '')
+	start_date = request.args.get('start_date', '')
+	end_date = request.args.get('end_date', '')
+	
+	# Base query
+	query = Claim.query
+	
+	# Apply filters
+	if status_filter:
+		query = query.filter_by(status=status_filter)
+	
+	if company_filter:
+		# Filter by company through policy relationship
+		query = query.join(Policy).filter(Policy.insurance_company_id == company_filter)
+	
+	if start_date:
+		try:
+			start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+			query = query.filter(Claim.accident_date >= start_dt)
+		except ValueError:
+			pass
+	
+	if end_date:
+		try:
+			end_dt = datetime.strptime(end_date, '%Y-%m-%d')
+			query = query.filter(Claim.accident_date <= end_dt)
+		except ValueError:
+			pass
+	
+	# Get filtered claims
+	claims = query.all()
+	
+	# Calculate summary statistics
+	total_claims = len(claims)
+	pending_claims = sum(1 for c in claims if c.status == 'Pending')
+	approved_claims = sum(1 for c in claims if c.status == 'Approved')
+	rejected_claims = sum(1 for c in claims if c.status == 'Rejected')
+	under_review_claims = sum(1 for c in claims if c.status == 'Under Review')
+	
+	# Get all companies for filter dropdown
+	companies = InsuranceCompany.query.all()
+	
+	return render_template('admin/view_claims.html',
+		claims=claims,
+		companies=companies,
+		total_claims=total_claims,
+		pending_claims=pending_claims,
+		approved_claims=approved_claims,
+		rejected_claims=rejected_claims,
+		under_review_claims=under_review_claims,
+		status_filter=status_filter,
+		company_filter=company_filter,
+		start_date=start_date,
+		end_date=end_date
+	)
+
+@app.route('/admin/export-claims-csv')
+@login_required
+@admin_required
+def admin_export_claims_csv():
+	"""Export filtered claims to CSV"""
+	from datetime import datetime
+	
+	# Get same filter parameters
+	status_filter = request.args.get('status', '')
+	company_filter = request.args.get('company_id', '')
+	start_date = request.args.get('start_date', '')
+	end_date = request.args.get('end_date', '')
+	
+	# Base query
+	query = Claim.query
+	
+	# Apply filters
+	if status_filter:
+		query = query.filter_by(status=status_filter)
+	
+	if company_filter:
+		# Filter by company through policy relationship
+		query = query.join(Policy).filter(Policy.insurance_company_id == company_filter)
+	
+	if start_date:
+		try:
+			start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+			query = query.filter(Claim.accident_date >= start_dt)
+		except ValueError:
+			pass
+	
+	if end_date:
+		try:
+			end_dt = datetime.strptime(end_date, '%Y-%m-%d')
+			query = query.filter(Claim.accident_date <= end_dt)
+		except ValueError:
+			pass
+	
+	# Get filtered claims
+	claims = query.all()
+	
+	# Create CSV
+	si = StringIO()
+	writer = csv.writer(si)
+	
+	# Write header
+	writer.writerow(['Claim Number', 'Policy Number', 'Customer Email', 'Insurance Company', 
+					 'Date of Accident', 'Location', 'Description', 'Status', 
+					 'Filed Date', 'Review Date'])
+	
+	# Write data
+	for claim in claims:
+		writer.writerow([
+			claim.claim_number or '',
+			claim.policy.policy_number if claim.policy else '',
+			claim.policy.email_address if claim.policy else '',
+			claim.policy.insurance_company.name if claim.policy and claim.policy.insurance_company else '',
+			claim.accident_date.strftime('%Y-%m-%d') if claim.accident_date else '',
+			claim.accident_location or '',
+			claim.accident_description[:100] or '',  # Truncate long descriptions
+			claim.status or '',
+			claim.date_submitted.strftime('%Y-%m-%d %H:%M') if claim.date_submitted else '',
+			claim.review_date.strftime('%Y-%m-%d %H:%M') if claim.review_date else ''
+		])
+	
+	output = si.getvalue()
+	si.close()
+	
+	return Response(
+		output,
+		mimetype='text/csv',
+		headers={'Content-Disposition': f'attachment; filename=clearview_claims_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'}
+	)
+
+@app.route('/admin/policy/<int:policy_id>')
+@login_required
+@admin_required
+def admin_view_policy_detail(policy_id):
+	"""View detailed information for a specific policy"""
+	policy = Policy.query.get_or_404(policy_id)
+	
+	return render_template('admin/policy_detail.html', policy=policy)
+
+@app.route('/admin/claim/<int:claim_id>')
+@login_required
+@admin_required
+def admin_view_claim_detail(claim_id):
+	"""View detailed information for a specific claim"""
+	claim = Claim.query.get_or_404(claim_id)
+	
+	return render_template('admin/claim_detail.html', claim=claim)
+
 @app.route('/customer/dashboard')
 @login_required
 @customer_required
@@ -481,7 +1068,625 @@ def customer_dashboard():
 @login_required
 @customer_required
 def customer_search():
-	return render_template('customer/search.html')
+	query = request.args.get('q', '').strip()
+	search_type = request.args.get('type', 'all')
+	
+	results = {
+		'policies': [],
+		'claims': [],
+		'quotes': [],
+		'companies': []
+	}
+	
+	if query:
+		search_pattern = f"%{query}%"
+		
+		# Search customer's own policies by email
+		if search_type in ['all', 'policies']:
+			results['policies'] = Policy.query.filter(
+				Policy.email_address == current_user.email
+			).filter(
+				db.or_(
+					Policy.policy_number.ilike(search_pattern),
+					Policy.insured_name.ilike(search_pattern),
+					Policy.registration_number.ilike(search_pattern),
+					Policy.vehicle_make.ilike(search_pattern),
+					Policy.vehicle_model.ilike(search_pattern)
+				)
+			).limit(20).all()
+		
+		# Search customer's own claims through their policies
+		if search_type in ['all', 'claims']:
+			customer_policies = Policy.query.filter_by(email_address=current_user.email).all()
+			policy_ids = [p.id for p in customer_policies]
+			if policy_ids:
+				results['claims'] = Claim.query.filter(
+					Claim.policy_id.in_(policy_ids)
+				).filter(
+					db.or_(
+						Claim.claim_number.ilike(search_pattern),
+						Claim.police_report_number.ilike(search_pattern),
+						Claim.accident_location.ilike(search_pattern)
+					)
+				).limit(20).all()
+		
+		# Search customer's own quotes
+		if search_type in ['all', 'quotes']:
+			results['quotes'] = Quote.query.filter(
+				Quote.customer_email == current_user.email
+			).filter(
+				db.or_(
+					Quote.quote_number.ilike(search_pattern),
+					Quote.vehicle_make.ilike(search_pattern),
+					Quote.vehicle_model.ilike(search_pattern),
+					Quote.registration_number.ilike(search_pattern)
+				)
+			).limit(20).all()
+		
+		# Search insurance companies
+		if search_type in ['all', 'companies']:
+			results['companies'] = InsuranceCompany.query.filter(
+				InsuranceCompany.name.ilike(search_pattern)
+			).filter_by(is_active=True).limit(20).all()
+	
+	total_results = sum(len(v) for v in results.values())
+	
+	return render_template('customer/search.html', 
+		query=query,
+		search_type=search_type,
+		results=results,
+		total_results=total_results
+	)
+
+@app.route('/customer/search-vehicle')
+@login_required
+@customer_required
+def customer_search_vehicle():
+	"""Search for vehicle by registration number"""
+	return render_template('customer/search_vehicle.html')
+
+@app.route('/customer/vehicle/<registration_number>')
+@login_required
+@customer_required
+def customer_view_vehicle(registration_number):
+	"""View vehicle details, policies, and claims"""
+	# Search for policies with this registration number
+	policies = Policy.query.filter_by(registration_number=registration_number.upper()).all()
+	
+	if not policies:
+		flash('No vehicle found with that registration number.', 'warning')
+		return redirect(url_for('customer_search_vehicle'))
+	
+	# Get all claims for these policies
+	policy_ids = [p.id for p in policies]
+	claims = Claim.query.filter(Claim.policy_id.in_(policy_ids)).all() if policy_ids else []
+	
+	# Get the most recent policy for vehicle details
+	active_policy = next((p for p in policies if p.status == 'Active'), None)
+	vehicle_info = active_policy if active_policy else policies[0]
+	
+	return render_template('customer/view_vehicle.html',
+		registration_number=registration_number.upper(),
+		vehicle_info=vehicle_info,
+		policies=policies,
+		claims=claims
+	)
+
+@app.route('/customer/policy/<int:policy_id>')
+@login_required
+@customer_required
+def customer_view_policy_detail(policy_id):
+	"""View detailed policy information with photos"""
+	policy = Policy.query.get_or_404(policy_id)
+	
+	# Note: Customers can view any policy when searching by vehicle registration
+	# but personal details are hidden in the template if not their own policy
+	
+	return render_template('customer/view_policy_detail.html', policy=policy)
+
+@app.route('/customer/claim/<int:claim_id>')
+@login_required
+@customer_required
+def customer_view_claim_detail(claim_id):
+	"""View detailed claim information with photos"""
+	claim = Claim.query.get_or_404(claim_id)
+	
+	# Note: Customers can view any claim when searching by vehicle registration
+	# but personal details are hidden in the template if not their own claim
+	
+	return render_template('customer/view_claim_detail.html', claim=claim)
+
+@app.route('/customer/reports-and-insights')
+@login_required
+@customer_required
+def customer_reports_and_insights():
+	"""View customer-specific reports and insights"""
+	
+	# Get customer's policies by matching email address
+	customer_policies = Policy.query.filter_by(email_address=current_user.email).all()
+	
+	# Policy statistics
+	total_policies = len(customer_policies)
+	active_policies = sum(1 for p in customer_policies if p.status == 'Active')
+	expired_policies = sum(1 for p in customer_policies if p.status == 'Expired')
+	cancelled_policies = sum(1 for p in customer_policies if p.status == 'Cancelled')
+	total_premium_paid = sum(p.premium_amount for p in customer_policies)
+	active_premium = sum(p.premium_amount for p in customer_policies if p.status == 'Active')
+	
+	# Get customer's claims through policies
+	policy_ids = [p.id for p in customer_policies]
+	customer_claims = Claim.query.filter(Claim.policy_id.in_(policy_ids)).all() if policy_ids else []
+	
+	# Claims statistics
+	total_claims = len(customer_claims)
+	pending_claims = sum(1 for c in customer_claims if c.status == 'Pending')
+	under_review_claims = sum(1 for c in customer_claims if c.status == 'Under Review')
+	approved_claims = sum(1 for c in customer_claims if c.status == 'Approved')
+	rejected_claims = sum(1 for c in customer_claims if c.status == 'Rejected')
+	
+	# Get customer's quotes by email
+	customer_quotes = Quote.query.filter_by(customer_email=current_user.email).all()
+	
+	# Quotes statistics
+	total_quotes = len(customer_quotes)
+	sent_quotes = sum(1 for q in customer_quotes if q.status == 'Sent')
+	converted_quotes = sum(1 for q in customer_quotes if q.status == 'Converted')
+	expired_quotes = sum(1 for q in customer_quotes if q.status == 'Expired')
+	quote_conversion_rate = (converted_quotes / total_quotes * 100) if total_quotes else 0
+	
+	# Policy breakdown by type
+	comprehensive_policies = sum(1 for p in customer_policies if p.policy_type == 'Comprehensive')
+	third_party_policies = sum(1 for p in customer_policies if p.policy_type == 'Third-Party')
+	
+	# Policy breakdown by company
+	policies_by_company = {}
+	for policy in customer_policies:
+		company_name = policy.insurance_company.name if policy.insurance_company else 'Unknown'
+		if company_name not in policies_by_company:
+			policies_by_company[company_name] = {
+				'count': 0,
+				'premium': 0,
+				'claims': 0
+			}
+		policies_by_company[company_name]['count'] += 1
+		if policy.status == 'Active':
+			policies_by_company[company_name]['premium'] += policy.premium_amount
+	
+	# Count claims per company
+	for claim in customer_claims:
+		if claim.insurance_company:
+			company_name = claim.insurance_company.name
+			if company_name in policies_by_company:
+				policies_by_company[company_name]['claims'] += 1
+	
+	# Sort by policy count
+	company_breakdown = sorted(
+		[{'name': k, **v} for k, v in policies_by_company.items()],
+		key=lambda x: x['count'],
+		reverse=True
+	)
+	
+	# Recent activity
+	recent_policies = sorted(customer_policies, key=lambda p: p.date_entered if p.date_entered else datetime.min, reverse=True)[:5]
+	recent_claims = sorted(customer_claims, key=lambda c: c.date_submitted if c.date_submitted else datetime.min, reverse=True)[:5]
+	
+	return render_template('customer/reports_and_insights.html',
+		# Policy stats
+		total_policies=total_policies,
+		active_policies=active_policies,
+		expired_policies=expired_policies,
+		cancelled_policies=cancelled_policies,
+		total_premium_paid=total_premium_paid,
+		active_premium=active_premium,
+		comprehensive_policies=comprehensive_policies,
+		third_party_policies=third_party_policies,
+		# Claims stats
+		total_claims=total_claims,
+		pending_claims=pending_claims,
+		under_review_claims=under_review_claims,
+		approved_claims=approved_claims,
+		rejected_claims=rejected_claims,
+		# Quotes stats
+		total_quotes=total_quotes,
+		sent_quotes=sent_quotes,
+		converted_quotes=converted_quotes,
+		expired_quotes=expired_quotes,
+		quote_conversion_rate=quote_conversion_rate,
+		# Breakdowns
+		company_breakdown=company_breakdown,
+		# Recent activity
+		recent_policies=recent_policies,
+		recent_claims=recent_claims
+	)
+
+@app.route('/customer/export-reports-csv')
+@login_required
+@customer_required
+def customer_export_reports_csv():
+	"""Export customer reports data to CSV"""
+	si = StringIO()
+	writer = csv.writer(si)
+	
+	# Get export type from query parameter
+	export_type = request.args.get('type', 'summary')
+	
+	if export_type == 'policies':
+		writer.writerow(['Policy Number', 'Insurance Company', 'Type', 'Premium (KES)', 'Status', 'Start Date', 'Expiry Date'])
+		customer_policies = Policy.query.filter_by(email_address=current_user.email).all()
+		for p in customer_policies:
+			writer.writerow([
+				p.policy_number,
+				p.insurance_company.name if p.insurance_company else 'N/A',
+				p.policy_type,
+				f'{p.premium_amount:.2f}',
+				p.status,
+				p.start_date.strftime('%Y-%m-%d') if p.start_date else 'N/A',
+				p.expiry_date.strftime('%Y-%m-%d') if p.expiry_date else 'N/A'
+			])
+	
+	elif export_type == 'claims':
+		writer.writerow(['Claim Number', 'Policy Number', 'Insurance Company', 'Status', 'Date Submitted', 'Review Date'])
+		customer_policies = Policy.query.filter_by(email_address=current_user.email).all()
+		policy_ids = [p.id for p in customer_policies]
+		customer_claims = Claim.query.filter(Claim.policy_id.in_(policy_ids)).all() if policy_ids else []
+		for c in customer_claims:
+			writer.writerow([
+				c.claim_number,
+				c.policy.policy_number if c.policy else 'N/A',
+				c.insurance_company.name if c.insurance_company else 'N/A',
+				c.status,
+				c.date_submitted.strftime('%Y-%m-%d') if c.date_submitted else 'N/A',
+				c.review_date.strftime('%Y-%m-%d') if c.review_date else 'N/A'
+			])
+	
+	else:  # summary
+		writer.writerow(['Metric', 'Value'])
+		customer_policies = Policy.query.filter_by(email_address=current_user.email).all()
+		policy_ids = [p.id for p in customer_policies]
+		customer_claims = Claim.query.filter(Claim.policy_id.in_(policy_ids)).all() if policy_ids else []
+		
+		writer.writerow(['Total Policies', len(customer_policies)])
+		writer.writerow(['Active Policies', sum(1 for p in customer_policies if p.status == 'Active')])
+		writer.writerow(['Total Premium Paid (KES)', f'{sum(p.premium_amount for p in customer_policies):.2f}'])
+		writer.writerow(['Active Premium (KES)', f'{sum(p.premium_amount for p in customer_policies if p.status == "Active"):.2f}'])
+		writer.writerow(['Total Claims', len(customer_claims)])
+		writer.writerow(['Approved Claims', sum(1 for c in customer_claims if c.status == 'Approved')])
+		writer.writerow(['Rejected Claims', sum(1 for c in customer_claims if c.status == 'Rejected')])
+	
+	output = si.getvalue()
+	si.close()
+	
+	return Response(
+		output,
+		mimetype='text/csv',
+		headers={'Content-Disposition': f'attachment; filename=clearview_customer_report_{export_type}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'}
+	)
+
+# ========== CUSTOMER POLICY MANAGEMENT ROUTES ==========
+
+@app.route('/customer/policy-management')
+@login_required
+@customer_required
+def customer_policy_management():
+	"""Main policy management dashboard for customers"""
+	# Get customer's owned policies (via email match)
+	owned_policies = Policy.query.filter_by(email_address=current_user.email).all()
+	
+	# Get monitored policies
+	monitored = CustomerMonitoredPolicy.query.filter_by(customer_id=current_user.id).all()
+	monitored_policies = [m.policy for m in monitored]
+	
+	# Get pending requests
+	access_requests = CustomerPolicyRequest.query.filter_by(
+		customer_id=current_user.id,
+		status='pending'
+	).all()
+	
+	cancellation_requests = PolicyCancellationRequest.query.filter_by(
+		customer_id=current_user.id,
+		status='pending'
+	).all()
+	
+	renewal_requests = PolicyRenewalRequest.query.filter_by(
+		customer_id=current_user.id,
+		status='pending'
+	).all()
+	
+	return render_template('customer/policy_management.html',
+		owned_policies=owned_policies,
+		monitored_policies=monitored_policies,
+		access_requests=access_requests,
+		cancellation_requests=cancellation_requests,
+		renewal_requests=renewal_requests,
+		today=date.today()
+	)
+
+@app.route('/customer/search-policy', methods=['GET', 'POST'])
+@login_required
+@customer_required
+def customer_search_policy():
+	"""Search for a policy by policy number"""
+	if request.method == 'POST':
+		policy_number = request.form.get('policy_number', '').strip().upper()
+		
+		if not policy_number:
+			flash('Please enter a policy number', 'warning')
+			return redirect(url_for('customer_search_policy'))
+		
+		policy = Policy.query.filter_by(policy_number=policy_number).first()
+		
+		if not policy:
+			flash(f'Policy {policy_number} not found', 'danger')
+			return redirect(url_for('customer_search_policy'))
+		
+		# Check if already owned
+		if policy.email_address == current_user.email:
+			flash('This policy is already in your account', 'info')
+			return redirect(url_for('customer_view_policy_from_management', policy_id=policy.id))
+		
+		# Check if already monitored
+		existing_monitor = CustomerMonitoredPolicy.query.filter_by(
+			customer_id=current_user.id,
+			policy_id=policy.id
+		).first()
+		
+		# Check if access request exists
+		existing_request = CustomerPolicyRequest.query.filter_by(
+			customer_id=current_user.id,
+			policy_id=policy.id,
+			status='pending'
+		).first()
+		
+		return render_template('customer/policy_search_result.html',
+			policy=policy,
+			is_monitored=existing_monitor is not None,
+			has_pending_request=existing_request is not None
+		)
+	
+	return render_template('customer/search_policy.html')
+
+@app.route('/customer/add-to-monitor/<int:policy_id>', methods=['POST'])
+@login_required
+@customer_required
+def customer_add_to_monitor(policy_id):
+	"""Add a policy to monitoring (view-only)"""
+	policy = Policy.query.get_or_404(policy_id)
+	
+	# Check if already owned
+	if policy.email_address == current_user.email:
+		flash('This policy is already in your account', 'info')
+		return redirect(url_for('customer_policy_management'))
+	
+	# Check if already monitored
+	existing = CustomerMonitoredPolicy.query.filter_by(
+		customer_id=current_user.id,
+		policy_id=policy_id
+	).first()
+	
+	if existing:
+		flash('Policy is already being monitored', 'info')
+	else:
+		monitored = CustomerMonitoredPolicy(
+			customer_id=current_user.id,
+			policy_id=policy_id
+		)
+		db.session.add(monitored)
+		db.session.commit()
+		flash(f'Policy {policy.policy_number} added to monitoring', 'success')
+	
+	return redirect(url_for('customer_policy_management'))
+
+@app.route('/customer/remove-from-monitor/<int:policy_id>', methods=['POST'])
+@login_required
+@customer_required
+def customer_remove_from_monitor(policy_id):
+	"""Remove a policy from monitoring"""
+	monitored = CustomerMonitoredPolicy.query.filter_by(
+		customer_id=current_user.id,
+		policy_id=policy_id
+	).first_or_404()
+	
+	policy_number = monitored.policy.policy_number
+	db.session.delete(monitored)
+	db.session.commit()
+	
+	flash(f'Policy {policy_number} removed from monitoring', 'success')
+	return redirect(url_for('customer_policy_management'))
+
+@app.route('/customer/request-policy-access/<int:policy_id>', methods=['GET', 'POST'])
+@login_required
+@customer_required
+def customer_request_policy_access(policy_id):
+	"""Request access to add a policy to customer's account"""
+	policy = Policy.query.get_or_404(policy_id)
+	
+	# Check if already owned
+	if policy.email_address == current_user.email:
+		flash('This policy is already in your account', 'info')
+		return redirect(url_for('customer_policy_management'))
+	
+	# Check for existing pending request
+	existing = CustomerPolicyRequest.query.filter_by(
+		customer_id=current_user.id,
+		policy_id=policy_id,
+		status='pending'
+	).first()
+	
+	if existing:
+		flash('You already have a pending access request for this policy', 'info')
+		return redirect(url_for('customer_policy_management'))
+	
+	if request.method == 'POST':
+		reason = request.form.get('reason', '').strip()
+		
+		access_request = CustomerPolicyRequest(
+			customer_id=current_user.id,
+			policy_id=policy_id,
+			request_reason=reason
+		)
+		db.session.add(access_request)
+		db.session.commit()
+		
+		flash(f'Access request submitted for policy {policy.policy_number}', 'success')
+		return redirect(url_for('customer_policy_management'))
+	
+	return render_template('customer/request_policy_access.html', policy=policy)
+
+@app.route('/customer/request-cancellation/<int:policy_id>', methods=['GET', 'POST'])
+@login_required
+@customer_required
+def customer_request_cancellation(policy_id):
+	"""Request cancellation of a policy"""
+	policy = Policy.query.get_or_404(policy_id)
+	
+	# Verify ownership
+	if policy.email_address != current_user.email:
+		flash('You can only request cancellation for your own policies', 'danger')
+		return redirect(url_for('customer_policy_management'))
+	
+	# Check if already cancelled
+	if policy.status == 'Cancelled':
+		flash('This policy is already cancelled', 'info')
+		return redirect(url_for('customer_policy_management'))
+	
+	# Check for existing pending request
+	existing = PolicyCancellationRequest.query.filter_by(
+		customer_id=current_user.id,
+		policy_id=policy_id,
+		status='pending'
+	).first()
+	
+	if existing:
+		flash('You already have a pending cancellation request for this policy', 'info')
+		return redirect(url_for('customer_policy_management'))
+	
+	if request.method == 'POST':
+		reason = request.form.get('reason', '').strip()
+		
+		if not reason:
+			flash('Please provide a reason for cancellation', 'warning')
+			return render_template('customer/request_cancellation.html', policy=policy)
+		
+		cancel_request = PolicyCancellationRequest(
+			customer_id=current_user.id,
+			policy_id=policy_id,
+			cancellation_reason=reason
+		)
+		db.session.add(cancel_request)
+		db.session.commit()
+		
+		flash(f'Cancellation request submitted for policy {policy.policy_number}', 'success')
+		return redirect(url_for('customer_policy_management'))
+	
+	return render_template('customer/request_cancellation.html', policy=policy)
+
+@app.route('/customer/request-renewal/<int:policy_id>', methods=['GET', 'POST'])
+@login_required
+@customer_required
+def customer_request_renewal(policy_id):
+	"""Request renewal of a policy"""
+	policy = Policy.query.get_or_404(policy_id)
+	
+	# Verify ownership
+	if policy.email_address != current_user.email:
+		flash('You can only request renewal for your own policies', 'danger')
+		return redirect(url_for('customer_policy_management'))
+	
+	# Check if policy is active
+	if policy.status != 'Active':
+		flash('Only active policies can be renewed', 'warning')
+		return redirect(url_for('customer_policy_management'))
+	
+	# Check if within renewal window (1 month before expiry)
+	days_until_expiry = (policy.expiry_date - date.today()).days
+	if days_until_expiry > 30:
+		flash(f'Policy can only be renewed within 30 days of expiry. Current expiry: {policy.expiry_date.strftime("%d %B %Y")} ({days_until_expiry} days remaining)', 'warning')
+		return redirect(url_for('customer_policy_management'))
+	
+	# Check for existing pending request
+	existing = PolicyRenewalRequest.query.filter_by(
+		customer_id=current_user.id,
+		policy_id=policy_id,
+		status='pending'
+	).first()
+	
+	if existing:
+		flash('You already have a pending renewal request for this policy', 'info')
+		return redirect(url_for('customer_policy_management'))
+	
+	if request.method == 'POST':
+		# Auto-calculate new dates (1 year from current expiry)
+		new_effective_date = policy.expiry_date + timedelta(days=1)
+		new_expiry_date = policy.expiry_date + timedelta(days=365)
+		
+		renewal_request = PolicyRenewalRequest(
+			customer_id=current_user.id,
+			policy_id=policy_id,
+			new_effective_date=new_effective_date,
+			new_expiry_date=new_expiry_date,
+			renewal_premium=policy.premium_amount  # Default to current premium
+		)
+		db.session.add(renewal_request)
+		db.session.commit()
+		
+		flash(f'Renewal request submitted for policy {policy.policy_number}', 'success')
+		return redirect(url_for('customer_policy_management'))
+	
+	# Calculate renewal dates for display
+	new_effective_date = policy.expiry_date + timedelta(days=1)
+	new_expiry_date = policy.expiry_date + timedelta(days=365)
+	
+	return render_template('customer/request_renewal.html',
+		policy=policy,
+		new_effective_date=new_effective_date,
+		new_expiry_date=new_expiry_date,
+		days_until_expiry=days_until_expiry
+	)
+
+@app.route('/customer/view-policy-management/<int:policy_id>')
+@login_required
+@customer_required
+def customer_view_policy_from_management(policy_id):
+	"""View policy details from policy management (includes monitoring and owned)"""
+	policy = Policy.query.get_or_404(policy_id)
+	
+	# Check if owned or monitored
+	is_owner = policy.email_address == current_user.email
+	is_monitored = CustomerMonitoredPolicy.query.filter_by(
+		customer_id=current_user.id,
+		policy_id=policy_id
+	).first() is not None
+	
+	if not is_owner and not is_monitored:
+		flash('You do not have access to this policy', 'danger')
+		return redirect(url_for('customer_policy_management'))
+	
+	# Check for pending requests
+	has_cancellation_request = PolicyCancellationRequest.query.filter_by(
+		customer_id=current_user.id,
+		policy_id=policy_id,
+		status='pending'
+	).first() is not None
+	
+	has_renewal_request = PolicyRenewalRequest.query.filter_by(
+		customer_id=current_user.id,
+		policy_id=policy_id,
+		status='pending'
+	).first() is not None
+	
+	# Calculate days until expiry
+	days_until_expiry = (policy.expiry_date - date.today()).days if policy.expiry_date else None
+	can_renew = is_owner and policy.status == 'Active' and days_until_expiry is not None and days_until_expiry <= 30
+	
+	return render_template('customer/view_policy_management.html',
+		policy=policy,
+		is_owner=is_owner,
+		is_monitored=is_monitored,
+		has_cancellation_request=has_cancellation_request,
+		has_renewal_request=has_renewal_request,
+		days_until_expiry=days_until_expiry,
+		can_renew=can_renew
+	)
 
 @app.route('/insurer/dashboard')
 @login_required
@@ -533,6 +1738,28 @@ def insurer_dashboard():
 		Claim.date_submitted.desc()
 	).limit(5).all()
 	
+	# Customer requests statistics
+	# Get all policy IDs for this company
+	company_policy_ids = [p.id for p in Policy.query.filter_by(insurance_company_id=company_id).all()]
+	
+	# Count pending customer requests
+	pending_access_requests = CustomerPolicyRequest.query.filter(
+		CustomerPolicyRequest.policy_id.in_(company_policy_ids),
+		CustomerPolicyRequest.status == 'pending'
+	).count()
+	
+	pending_cancellation_requests = PolicyCancellationRequest.query.filter(
+		PolicyCancellationRequest.policy_id.in_(company_policy_ids),
+		PolicyCancellationRequest.status == 'pending'
+	).count()
+	
+	pending_renewal_requests = PolicyRenewalRequest.query.filter(
+		PolicyRenewalRequest.policy_id.in_(company_policy_ids),
+		PolicyRenewalRequest.status == 'pending'
+	).count()
+	
+	total_customer_requests = pending_access_requests + pending_cancellation_requests + pending_renewal_requests
+	
 	# Insurer is approved, show dashboard with data
 	return render_template('insurer/insurerdashboard.html',
 						   total_policies=total_policies,
@@ -543,6 +1770,10 @@ def insurer_dashboard():
 						   pending_claims=pending_claims,
 						   under_review_claims=under_review_claims,
 						   recent_claims=recent_claims,
+						   pending_access_requests=pending_access_requests,
+						   pending_cancellation_requests=pending_cancellation_requests,
+						   pending_renewal_requests=pending_renewal_requests,
+						   total_customer_requests=total_customer_requests,
 						   now=datetime.now())
 
 @app.route('/insurer/search')
@@ -1802,6 +3033,244 @@ def reports_and_insights():
 		user_activity=user_activity
 	)
 
+# ========== INSURER CUSTOMER REQUEST HANDLING ROUTES ==========
+
+@app.route('/insurer/customer-requests')
+@login_required
+@insurer_required
+def insurer_customer_requests():
+	"""View all customer requests for insurer's company"""
+	if not current_user.is_approved:
+		return redirect(url_for('request_insurer_access'))
+	
+	company_id = current_user.insurance_company_id
+	
+	# Get all policies for this company
+	company_policy_ids = [p.id for p in Policy.query.filter_by(insurance_company_id=company_id).all()]
+	
+	# Access requests
+	access_requests = CustomerPolicyRequest.query.filter(
+		CustomerPolicyRequest.policy_id.in_(company_policy_ids),
+		CustomerPolicyRequest.status == 'pending'
+	).order_by(CustomerPolicyRequest.request_date.desc()).all()
+	
+	# Cancellation requests
+	cancellation_requests = PolicyCancellationRequest.query.filter(
+		PolicyCancellationRequest.policy_id.in_(company_policy_ids),
+		PolicyCancellationRequest.status == 'pending'
+	).order_by(PolicyCancellationRequest.request_date.desc()).all()
+	
+	# Renewal requests
+	renewal_requests = PolicyRenewalRequest.query.filter(
+		PolicyRenewalRequest.policy_id.in_(company_policy_ids),
+		PolicyRenewalRequest.status == 'pending'
+	).order_by(PolicyRenewalRequest.request_date.desc()).all()
+	
+	return render_template('insurer/customer_requests.html',
+		access_requests=access_requests,
+		cancellation_requests=cancellation_requests,
+		renewal_requests=renewal_requests
+	)
+
+@app.route('/insurer/approve-access-request/<int:request_id>', methods=['POST'])
+@login_required
+@insurer_required
+def insurer_approve_access_request(request_id):
+	"""Approve customer's policy access request"""
+	if not current_user.is_approved:
+		return redirect(url_for('request_insurer_access'))
+	
+	access_request = CustomerPolicyRequest.query.get_or_404(request_id)
+	
+	# Verify insurer has access to this policy's company
+	if access_request.policy.insurance_company_id != current_user.insurance_company_id:
+		flash('Unauthorized access', 'danger')
+		return redirect(url_for('insurer_customer_requests'))
+	
+	# Update customer's email in policy
+	policy = access_request.policy
+	customer = access_request.customer
+	
+	# Update policy email to match customer
+	policy.email_address = customer.email
+	
+	# Approve request
+	access_request.status = 'approved'
+	access_request.reviewed_by = current_user.id
+	access_request.reviewed_date = datetime.now()
+	access_request.review_notes = request.form.get('notes', '').strip()
+	
+	db.session.commit()
+	
+	flash(f'Access request approved for policy {policy.policy_number}', 'success')
+	return redirect(url_for('insurer_customer_requests'))
+
+@app.route('/insurer/reject-access-request/<int:request_id>', methods=['POST'])
+@login_required
+@insurer_required
+def insurer_reject_access_request(request_id):
+	"""Reject customer's policy access request"""
+	if not current_user.is_approved:
+		return redirect(url_for('request_insurer_access'))
+	
+	access_request = CustomerPolicyRequest.query.get_or_404(request_id)
+	
+	# Verify insurer has access to this policy's company
+	if access_request.policy.insurance_company_id != current_user.insurance_company_id:
+		flash('Unauthorized access', 'danger')
+		return redirect(url_for('insurer_customer_requests'))
+	
+	reason = request.form.get('reason', '').strip()
+	if not reason:
+		flash('Please provide a reason for rejection', 'warning')
+		return redirect(url_for('insurer_customer_requests'))
+	
+	# Reject request
+	access_request.status = 'rejected'
+	access_request.reviewed_by = current_user.id
+	access_request.reviewed_date = datetime.now()
+	access_request.rejection_reason = reason
+	
+	db.session.commit()
+	
+	flash(f'Access request rejected for policy {access_request.policy.policy_number}', 'info')
+	return redirect(url_for('insurer_customer_requests'))
+
+@app.route('/insurer/approve-cancellation-request/<int:request_id>', methods=['POST'])
+@login_required
+@insurer_required
+def insurer_approve_cancellation_request(request_id):
+	"""Approve customer's policy cancellation request"""
+	if not current_user.is_approved:
+		return redirect(url_for('request_insurer_access'))
+	
+	cancel_request = PolicyCancellationRequest.query.get_or_404(request_id)
+	
+	# Verify insurer has access to this policy's company
+	if cancel_request.policy.insurance_company_id != current_user.insurance_company_id:
+		flash('Unauthorized access', 'danger')
+		return redirect(url_for('insurer_customer_requests'))
+	
+	# Cancel the policy
+	policy = cancel_request.policy
+	policy.status = 'Cancelled'
+	policy.cancelled_by = current_user.id
+	policy.cancellation_date = datetime.now()
+	policy.cancellation_reason = cancel_request.cancellation_reason
+	
+	# Approve request
+	cancel_request.status = 'approved'
+	cancel_request.reviewed_by = current_user.id
+	cancel_request.reviewed_date = datetime.now()
+	cancel_request.review_notes = request.form.get('notes', '').strip()
+	
+	db.session.commit()
+	
+	flash(f'Policy {policy.policy_number} has been cancelled', 'success')
+	return redirect(url_for('insurer_customer_requests'))
+
+@app.route('/insurer/reject-cancellation-request/<int:request_id>', methods=['POST'])
+@login_required
+@insurer_required
+def insurer_reject_cancellation_request(request_id):
+	"""Reject customer's policy cancellation request"""
+	if not current_user.is_approved:
+		return redirect(url_for('request_insurer_access'))
+	
+	cancel_request = PolicyCancellationRequest.query.get_or_404(request_id)
+	
+	# Verify insurer has access to this policy's company
+	if cancel_request.policy.insurance_company_id != current_user.insurance_company_id:
+		flash('Unauthorized access', 'danger')
+		return redirect(url_for('insurer_customer_requests'))
+	
+	reason = request.form.get('reason', '').strip()
+	if not reason:
+		flash('Please provide a reason for rejection', 'warning')
+		return redirect(url_for('insurer_customer_requests'))
+	
+	# Reject request
+	cancel_request.status = 'rejected'
+	cancel_request.reviewed_by = current_user.id
+	cancel_request.reviewed_date = datetime.now()
+	cancel_request.rejection_reason = reason
+	
+	db.session.commit()
+	
+	flash(f'Cancellation request rejected for policy {cancel_request.policy.policy_number}', 'info')
+	return redirect(url_for('insurer_customer_requests'))
+
+@app.route('/insurer/approve-renewal-request/<int:request_id>', methods=['POST'])
+@login_required
+@insurer_required
+def insurer_approve_renewal_request(request_id):
+	"""Approve customer's policy renewal request"""
+	if not current_user.is_approved:
+		return redirect(url_for('request_insurer_access'))
+	
+	renewal_request = PolicyRenewalRequest.query.get_or_404(request_id)
+	
+	# Verify insurer has access to this policy's company
+	if renewal_request.policy.insurance_company_id != current_user.insurance_company_id:
+		flash('Unauthorized access', 'danger')
+		return redirect(url_for('insurer_customer_requests'))
+	
+	# Get adjusted premium from form (insurer can modify)
+	try:
+		adjusted_premium = float(request.form.get('premium', renewal_request.policy.premium_amount))
+	except:
+		adjusted_premium = renewal_request.policy.premium_amount
+	
+	# Update policy dates
+	policy = renewal_request.policy
+	policy.effective_date = renewal_request.new_effective_date
+	policy.expiry_date = renewal_request.new_expiry_date
+	policy.premium_amount = adjusted_premium
+	policy.status = 'Active'
+	
+	# Approve request
+	renewal_request.status = 'approved'
+	renewal_request.reviewed_by = current_user.id
+	renewal_request.reviewed_date = datetime.now()
+	renewal_request.renewal_premium = adjusted_premium
+	renewal_request.review_notes = request.form.get('notes', '').strip()
+	
+	db.session.commit()
+	
+	flash(f'Policy {policy.policy_number} has been renewed until {policy.expiry_date.strftime("%d %B %Y")}', 'success')
+	return redirect(url_for('insurer_customer_requests'))
+
+@app.route('/insurer/reject-renewal-request/<int:request_id>', methods=['POST'])
+@login_required
+@insurer_required
+def insurer_reject_renewal_request(request_id):
+	"""Reject customer's policy renewal request"""
+	if not current_user.is_approved:
+		return redirect(url_for('request_insurer_access'))
+	
+	renewal_request = PolicyRenewalRequest.query.get_or_404(request_id)
+	
+	# Verify insurer has access to this policy's company
+	if renewal_request.policy.insurance_company_id != current_user.insurance_company_id:
+		flash('Unauthorized access', 'danger')
+		return redirect(url_for('insurer_customer_requests'))
+	
+	reason = request.form.get('reason', '').strip()
+	if not reason:
+		flash('Please provide a reason for rejection', 'warning')
+		return redirect(url_for('insurer_customer_requests'))
+	
+	# Reject request
+	renewal_request.status = 'rejected'
+	renewal_request.reviewed_by = current_user.id
+	renewal_request.reviewed_date = datetime.now()
+	renewal_request.rejection_reason = reason
+	
+	db.session.commit()
+	
+	flash(f'Renewal request rejected for policy {renewal_request.policy.policy_number}', 'info')
+	return redirect(url_for('insurer_customer_requests'))
+
 @app.route('/regulator/dashboard')
 @login_required
 @regulator_required
@@ -1820,8 +3289,81 @@ def regulator_dashboard():
 			# No request yet, redirect to request access page
 			return redirect(url_for('request_regulator_access'))
 	
-	# Regulator is approved, show dashboard
-	return render_template('regulator/regulatordashboard.html')
+	# Regulator is approved, show dashboard with data
+	
+	# Get all insurance companies
+	all_companies = InsuranceCompany.query.filter_by(is_active=True).all()
+	
+	# Get all insurers with their company info
+	all_insurers = Insurer.query.filter_by(is_approved=True).all()
+	
+	# Get all policies and claims for statistics
+	all_policies = Policy.query.all()
+	all_claims = Claim.query.all()
+	
+	# Calculate statistics
+	total_companies = len(all_companies)
+	total_insurers = len(all_insurers)
+	total_policies = len(all_policies)
+	active_policies = sum(1 for p in all_policies if p.status == 'Active')
+	total_claims = len(all_claims)
+	pending_claims = sum(1 for c in all_claims if c.status == 'Pending')
+	
+	# Calculate compliance rate (based on claim approval rate)
+	approved_claims = sum(1 for c in all_claims if c.status == 'Approved')
+	compliance_rate = (approved_claims / total_claims * 100) if total_claims > 0 else 100
+	
+	# Get company performance data
+	company_data = []
+	for company in all_companies[:10]:  # Top 10 companies
+		comp_policies = Policy.query.filter_by(insurance_company_id=company.id).all()
+		comp_active = sum(1 for p in comp_policies if p.status == 'Active')
+		comp_claims = Claim.query.join(Policy).filter(Policy.insurance_company_id == company.id).all()
+		comp_approved = sum(1 for c in comp_claims if c.status == 'Approved')
+		comp_total_claims = len(comp_claims)
+		
+		# Calculate compliance score
+		claim_approval = (comp_approved / comp_total_claims * 100) if comp_total_claims > 0 else 100
+		compliance_score = min(100, claim_approval)
+		
+		company_data.append({
+			'name': company.name,
+			'active_policies': comp_active,
+			'compliance_score': compliance_score,
+			'status': 'Active' if company.is_active else 'Inactive'
+		})
+	
+	# Sort by compliance score
+	company_data.sort(key=lambda x: x['compliance_score'], reverse=True)
+	
+	# Get recent claims as "issues" (claims with Rejected or Pending status could be violations)
+	recent_issues = []
+	problem_claims = Claim.query.filter(
+		Claim.status.in_(['Rejected', 'Under Review'])
+	).order_by(Claim.date_submitted.desc()).limit(10).all()
+	
+	for claim in problem_claims:
+		issue_type = 'Claim Processing' if claim.status == 'Under Review' else 'Claim Rejection'
+		severity = 'Medium' if claim.status == 'Under Review' else 'High'
+		
+		recent_issues.append({
+			'id': claim.claim_number,
+			'company': claim.insurance_company.name if claim.insurance_company else 'Unknown',
+			'type': issue_type,
+			'severity': severity
+		})
+	
+	return render_template('regulator/regulatordashboard.html',
+		total_companies=total_companies,
+		total_insurers=total_insurers,
+		total_policies=total_policies,
+		active_policies=active_policies,
+		total_claims=total_claims,
+		pending_claims=pending_claims,
+		compliance_rate=compliance_rate,
+		company_data=company_data,
+		recent_issues=recent_issues
+	)
 
 @app.route('/regulator/request-access', methods=['GET', 'POST'])
 @login_required
@@ -1870,7 +3412,270 @@ def request_regulator_access():
 @login_required
 @regulator_required
 def regulator_search():
-	return render_template('regulator/search.html')
+	query = request.args.get('q', '').strip()
+	search_type = request.args.get('type', 'all')
+	
+	results = {
+		'companies': [],
+		'insurers': [],
+		'policies': [],
+		'claims': []
+	}
+	
+	if query:
+		search_pattern = f"%{query}%"
+		
+		# Search insurance companies
+		if search_type in ['all', 'companies']:
+			results['companies'] = InsuranceCompany.query.filter(
+				InsuranceCompany.name.ilike(search_pattern)
+			).limit(20).all()
+		
+		# Search insurers (professionals)
+		if search_type in ['all', 'insurers']:
+			results['insurers'] = Insurer.query.filter(
+				db.or_(
+					Insurer.username.ilike(search_pattern),
+					Insurer.email.ilike(search_pattern),
+					Insurer.staff_id.ilike(search_pattern)
+				)
+			).limit(20).all()
+		
+		# Search all policies (regulatory oversight)
+		if search_type in ['all', 'policies']:
+			results['policies'] = Policy.query.filter(
+				db.or_(
+					Policy.policy_number.ilike(search_pattern),
+					Policy.insured_name.ilike(search_pattern),
+					Policy.registration_number.ilike(search_pattern),
+					Policy.national_id.ilike(search_pattern)
+				)
+			).limit(20).all()
+		
+		# Search all claims (regulatory oversight)
+		if search_type in ['all', 'claims']:
+			results['claims'] = Claim.query.filter(
+				db.or_(
+					Claim.claim_number.ilike(search_pattern),
+					Claim.police_report_number.ilike(search_pattern)
+				)
+			).limit(20).all()
+	
+	total_results = sum(len(v) for v in results.values())
+	
+	return render_template('regulator/search.html', 
+		query=query,
+		search_type=search_type,
+		results=results,
+		total_results=total_results
+	)
+
+@app.route('/regulator/reports-and-insights')
+@login_required
+@regulator_required
+def regulator_reports_and_insights():
+	"""View comprehensive regulatory oversight reports and insights"""
+	if not current_user.is_approved:
+		return redirect(url_for('request_regulator_access'))
+	
+	# Get all data for industry oversight
+	all_companies = InsuranceCompany.query.filter_by(is_active=True).all()
+	all_policies = Policy.query.all()
+	all_claims = Claim.query.all()
+	all_quotes = Quote.query.all()
+	all_insurers = Insurer.query.all()
+	all_customers = Customer.query.all()
+	
+	# Industry policy statistics
+	total_policies = len(all_policies)
+	active_policies = sum(1 for p in all_policies if p.status == 'Active')
+	expired_policies = sum(1 for p in all_policies if p.status == 'Expired')
+	cancelled_policies = sum(1 for p in all_policies if p.status == 'Cancelled')
+	total_premium = sum(p.premium_amount for p in all_policies if p.status == 'Active')
+	
+	# Industry claims statistics
+	total_claims = len(all_claims)
+	pending_claims = sum(1 for c in all_claims if c.status == 'Pending')
+	under_review_claims = sum(1 for c in all_claims if c.status == 'Under Review')
+	approved_claims = sum(1 for c in all_claims if c.status == 'Approved')
+	rejected_claims = sum(1 for c in all_claims if c.status == 'Rejected')
+	
+	# Calculate claim approval rate
+	claim_approval_rate = (approved_claims / total_claims * 100) if total_claims else 0
+	
+	# Industry quotes statistics
+	total_quotes = len(all_quotes)
+	converted_quotes = sum(1 for q in all_quotes if q.status == 'Converted')
+	quote_conversion_rate = (converted_quotes / total_quotes * 100) if total_quotes else 0
+	
+	# Company compliance and performance
+	company_performance = []
+	for company in all_companies:
+		comp_policies = Policy.query.filter_by(insurance_company_id=company.id).all()
+		comp_active = sum(1 for p in comp_policies if p.status == 'Active')
+		comp_premium = sum(p.premium_amount for p in comp_policies if p.status == 'Active')
+		comp_claims = Claim.query.join(Policy).filter(Policy.insurance_company_id == company.id).all()
+		comp_total_claims = len(comp_claims)
+		comp_approved_claims = sum(1 for c in comp_claims if c.status == 'Approved')
+		comp_rejected_claims = sum(1 for c in comp_claims if c.status == 'Rejected')
+		comp_staff = Insurer.query.filter_by(insurance_company_id=company.id, is_approved=True).count()
+		
+		# Calculate compliance score (simple metric based on claim approval rate and policy management)
+		claim_approval = (comp_approved_claims / comp_total_claims * 100) if comp_total_claims else 100
+		compliance_score = min(100, (claim_approval * 0.6 + 40))  # Weighted score
+		
+		company_performance.append({
+			'name': company.name,
+			'active_policies': comp_active,
+			'total_premium': comp_premium,
+			'total_claims': comp_total_claims,
+			'approved_claims': comp_approved_claims,
+			'rejected_claims': comp_rejected_claims,
+			'staff_count': comp_staff,
+			'compliance_score': compliance_score
+		})
+	
+	# Sort by compliance score (descending)
+	company_performance.sort(key=lambda x: x['compliance_score'], reverse=True)
+	
+	# Policy type breakdown
+	comprehensive_policies = sum(1 for p in all_policies if p.policy_type == 'Comprehensive')
+	third_party_policies = sum(1 for p in all_policies if p.policy_type == 'Third-Party')
+	
+	# Market concentration (top 5 companies by active policies)
+	top_companies = sorted(company_performance, key=lambda x: x['active_policies'], reverse=True)[:5]
+	top_companies_policies = sum(c['active_policies'] for c in top_companies)
+	market_concentration = (top_companies_policies / total_policies * 100) if total_policies else 0
+	
+	# Customer protection metrics
+	total_customers = len(all_customers)
+	# Count unique customers by email in policies
+	customers_with_policies = len(set(p.email_address for p in all_policies if p.email_address))
+	# Count unique customers by matching policy emails with claims
+	policy_emails_with_claims = set()
+	for claim in all_claims:
+		if claim.policy and claim.policy.email_address:
+			policy_emails_with_claims.add(claim.policy.email_address)
+	customers_with_claims = len(policy_emails_with_claims)
+	
+	return render_template('regulator/reports_and_insights.html',
+		# Regulatory body
+		regulatory_body=current_user.regulatory_body,
+		# Industry stats
+		total_companies=len(all_companies),
+		total_policies=total_policies,
+		active_policies=active_policies,
+		expired_policies=expired_policies,
+		cancelled_policies=cancelled_policies,
+		total_premium=total_premium,
+		comprehensive_policies=comprehensive_policies,
+		third_party_policies=third_party_policies,
+		# Claims stats
+		total_claims=total_claims,
+		pending_claims=pending_claims,
+		under_review_claims=under_review_claims,
+		approved_claims=approved_claims,
+		rejected_claims=rejected_claims,
+		claim_approval_rate=claim_approval_rate,
+		# Quotes stats
+		total_quotes=total_quotes,
+		converted_quotes=converted_quotes,
+		quote_conversion_rate=quote_conversion_rate,
+		# Market data
+		total_insurers=len(all_insurers),
+		approved_insurers=sum(1 for i in all_insurers if i.is_approved),
+		company_performance=company_performance,
+		market_concentration=market_concentration,
+		top_companies=top_companies,
+		# Customer protection
+		total_customers=total_customers,
+		customers_with_policies=customers_with_policies,
+		customers_with_claims=customers_with_claims
+	)
+
+@app.route('/regulator/export-reports-csv')
+@login_required
+@regulator_required
+def regulator_export_reports_csv():
+	"""Export regulator reports data to CSV"""
+	if not current_user.is_approved:
+		return redirect(url_for('request_regulator_access'))
+	
+	si = StringIO()
+	writer = csv.writer(si)
+	
+	# Get export type from query parameter
+	export_type = request.args.get('type', 'summary')
+	
+	if export_type == 'companies':
+		writer.writerow(['Company Name', 'Active Policies', 'Total Premium (KES)', 'Total Claims', 'Approved Claims', 'Rejected Claims', 'Staff Count', 'Compliance Score'])
+		all_companies = InsuranceCompany.query.filter_by(is_active=True).all()
+		for company in all_companies:
+			comp_policies = Policy.query.filter_by(insurance_company_id=company.id).all()
+			comp_active = sum(1 for p in comp_policies if p.status == 'Active')
+			comp_premium = sum(p.premium_amount for p in comp_policies if p.status == 'Active')
+			comp_claims = Claim.query.join(Policy).filter(Policy.insurance_company_id == company.id).all()
+			comp_total_claims = len(comp_claims)
+			comp_approved_claims = sum(1 for c in comp_claims if c.status == 'Approved')
+			comp_rejected_claims = sum(1 for c in comp_claims if c.status == 'Rejected')
+			comp_staff = Insurer.query.filter_by(insurance_company_id=company.id, is_approved=True).count()
+			claim_approval = (comp_approved_claims / comp_total_claims * 100) if comp_total_claims else 100
+			compliance_score = min(100, (claim_approval * 0.6 + 40))
+			writer.writerow([company.name, comp_active, f'{comp_premium:.2f}', comp_total_claims, comp_approved_claims, comp_rejected_claims, comp_staff, f'{compliance_score:.1f}'])
+	
+	elif export_type == 'policies':
+		writer.writerow(['Policy Number', 'Company', 'Type', 'Premium (KES)', 'Status', 'Start Date', 'Expiry Date'])
+		all_policies = Policy.query.all()
+		for p in all_policies:
+			writer.writerow([
+				p.policy_number,
+				p.insurance_company.name if p.insurance_company else 'N/A',
+				p.policy_type,
+				f'{p.premium_amount:.2f}',
+				p.status,
+				p.start_date.strftime('%Y-%m-%d') if p.start_date else 'N/A',
+				p.expiry_date.strftime('%Y-%m-%d') if p.expiry_date else 'N/A'
+			])
+	
+	elif export_type == 'claims':
+		writer.writerow(['Claim Number', 'Policy Number', 'Company', 'Status', 'Date Submitted', 'Review Date'])
+		all_claims = Claim.query.all()
+		for c in all_claims:
+			writer.writerow([
+				c.claim_number,
+				c.policy.policy_number if c.policy else 'N/A',
+				c.insurance_company.name if c.insurance_company else 'N/A',
+				c.status,
+				c.date_submitted.strftime('%Y-%m-%d') if c.date_submitted else 'N/A',
+				c.review_date.strftime('%Y-%m-%d') if c.review_date else 'N/A'
+			])
+	
+	else:  # summary
+		writer.writerow(['Metric', 'Value'])
+		all_companies = InsuranceCompany.query.filter_by(is_active=True).all()
+		all_policies = Policy.query.all()
+		all_claims = Claim.query.all()
+		all_quotes = Quote.query.all()
+		
+		writer.writerow(['Total Insurance Companies', len(all_companies)])
+		writer.writerow(['Total Policies', len(all_policies)])
+		writer.writerow(['Active Policies', sum(1 for p in all_policies if p.status == 'Active')])
+		writer.writerow(['Total Premium (KES)', f'{sum(p.premium_amount for p in all_policies if p.status == "Active"):.2f}'])
+		writer.writerow(['Total Claims', len(all_claims)])
+		writer.writerow(['Approved Claims', sum(1 for c in all_claims if c.status == 'Approved')])
+		writer.writerow(['Rejected Claims', sum(1 for c in all_claims if c.status == 'Rejected')])
+		writer.writerow(['Claim Approval Rate (%)', f'{(sum(1 for c in all_claims if c.status == "Approved") / len(all_claims) * 100):.2f}' if all_claims else '0.00'])
+		writer.writerow(['Total Quotes', len(all_quotes)])
+		writer.writerow(['Quote Conversion Rate (%)', f'{(sum(1 for q in all_quotes if q.status == "Converted") / len(all_quotes) * 100):.2f}' if all_quotes else '0.00'])
+	
+	output = si.getvalue()
+	si.close()
+	
+	return Response(
+		output,
+		mimetype='text/csv',
+		headers={'Content-Disposition': f'attachment; filename=clearview_regulator_report_{export_type}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'}
+	)
 
 @app.route('/uploads/<path:filename>')
 @login_required

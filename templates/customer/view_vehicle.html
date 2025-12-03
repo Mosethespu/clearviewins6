@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+
+{% block title %}Vehicle Details - {{ registration_number }} - ClearView Insurance{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+	<div class="row">
+		<!-- Sidebar -->
+		<aside class="col-12 col-md-3 col-lg-2 mb-4 mb-md-0">
+			<div class="dashboard-sidebar p-3 bg-light rounded shadow-sm">
+				<h6 class="text-uppercase text-muted mb-3">User Options</h6>
+				<div class="d-grid gap-2">
+					<a class="btn btn-outline-primary sidebar-btn" href="{{ url_for('customer_dashboard') }}">
+						<i class="bi bi-house"></i> Dashboard
+					</a>
+					<a class="btn btn-outline-primary sidebar-btn" href="{{ url_for('customer_search') }}">
+						<i class="bi bi-search"></i> Search
+					</a>
+					<a class="btn btn-outline-primary sidebar-btn" href="#">Policies Management</a>
+					<a class="btn btn-outline-primary sidebar-btn" href="#">Claims Management</a>
+					<a class="btn btn-primary sidebar-btn" href="{{ url_for('customer_search_vehicle') }}">
+						<i class="bi bi-car-front"></i> Search Vehicle
+					</a>
+					<a class="btn btn-outline-primary sidebar-btn" href="{{ url_for('customer_reports_and_insights') }}">Reports & Insights</a>
+				</div>
+			</div>
+		</aside>
+
+		<!-- Main content -->
+		<main class="col-12 col-md-9 col-lg-10">
+			<div class="px-2 px-md-3">
+				<!-- Header -->
+				<div class="d-flex justify-content-between align-items-center mb-4">
+					<div>
+						<h2><i class="bi bi-car-front-fill"></i> Vehicle: {{ registration_number }}</h2>
+						<p class="text-muted mb-0">Complete vehicle information, policies, and claims history</p>
+					</div>
+					<a href="{{ url_for('customer_search_vehicle') }}" class="btn btn-outline-secondary">
+						<i class="bi bi-arrow-left"></i> New Search
+					</a>
+				</div>
+
+				<!-- Vehicle Information Card -->
+				<div class="card shadow-sm mb-4">
+					<div class="card-header bg-primary text-white">
+						<h5 class="mb-0"><i class="bi bi-info-circle"></i> Vehicle Information</h5>
+					</div>
+					<div class="card-body">
+						<div class="row">
+							<div class="col-md-6">
+								<table class="table table-borderless mb-0">
+									<tr>
+										<th class="text-muted" style="width: 40%;">Registration Number:</th>
+										<td><strong class="fs-5">{{ vehicle_info.registration_number }}</strong></td>
+									</tr>
+									<tr>
+										<th class="text-muted">Make & Model:</th>
+										<td><strong>{{ vehicle_info.make_model }}</strong></td>
+									</tr>
+									<tr>
+										<th class="text-muted">Year of Manufacture:</th>
+										<td>{{ vehicle_info.year_of_manufacture }}</td>
+									</tr>
+									<tr>
+										<th class="text-muted">Body Type:</th>
+										<td>{{ vehicle_info.body_type }}</td>
+									</tr>
+								</table>
+							</div>
+							<div class="col-md-6">
+								<table class="table table-borderless mb-0">
+									<tr>
+										<th class="text-muted" style="width: 40%;">Color:</th>
+										<td>{{ vehicle_info.color }}</td>
+									</tr>
+									<tr>
+										<th class="text-muted">Seating Capacity:</th>
+										<td>{{ vehicle_info.seating_capacity }} seats</td>
+									</tr>
+									<tr>
+										<th class="text-muted">Use Category:</th>
+										<td>{{ vehicle_info.use_category }}</td>
+									</tr>
+									<tr>
+										<th class="text-muted">Chassis Number:</th>
+										<td><code>{{ vehicle_info.chassis_number }}</code></td>
+									</tr>
+								</table>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Summary Cards -->
+				<div class="row g-3 mb-4">
+					<div class="col-md-3">
+						<div class="card shadow-sm h-100 text-center">
+							<div class="card-body">
+								<i class="bi bi-file-text text-primary" style="font-size: 2rem;"></i>
+								<h3 class="mt-2 mb-0">{{ policies|length }}</h3>
+								<p class="text-muted mb-0">Total Policies</p>
+							</div>
+						</div>
+					</div>
+					<div class="col-md-3">
+						<div class="card shadow-sm h-100 text-center">
+							<div class="card-body">
+								<i class="bi bi-check-circle text-success" style="font-size: 2rem;"></i>
+								<h3 class="mt-2 mb-0">{{ policies|selectattr('status', 'equalto', 'Active')|list|length }}</h3>
+								<p class="text-muted mb-0">Active Policies</p>
+							</div>
+						</div>
+					</div>
+					<div class="col-md-3">
+						<div class="card shadow-sm h-100 text-center">
+							<div class="card-body">
+								<i class="bi bi-file-earmark-medical text-danger" style="font-size: 2rem;"></i>
+								<h3 class="mt-2 mb-0">{{ claims|length }}</h3>
+								<p class="text-muted mb-0">Total Claims</p>
+							</div>
+						</div>
+					</div>
+					<div class="col-md-3">
+						<div class="card shadow-sm h-100 text-center">
+							<div class="card-body">
+								<i class="bi bi-hourglass-split text-warning" style="font-size: 2rem;"></i>
+								<h3 class="mt-2 mb-0">{{ claims|selectattr('status', 'in', ['Pending', 'Under Review'])|list|length }}</h3>
+								<p class="text-muted mb-0">Pending Claims</p>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Policies Section -->
+				<div class="card shadow-sm mb-4">
+					<div class="card-header bg-success text-white">
+						<h5 class="mb-0"><i class="bi bi-file-text"></i> Insurance Policies ({{ policies|length }})</h5>
+					</div>
+					<div class="card-body">
+						{% if policies %}
+						<div class="table-responsive">
+							<table class="table table-hover mb-0">
+								<thead class="table-light">
+									<tr>
+										<th>Policy Number</th>
+										<th>Insurance Company</th>
+										<th>Policy Type</th>
+										<th>Effective Date</th>
+										<th>Expiry Date</th>
+										<th>Status</th>
+										<th>Premium</th>
+										<th>Action</th>
+									</tr>
+								</thead>
+								<tbody>
+									{% for policy in policies %}
+									<tr>
+										<td><strong>{{ policy.policy_number }}</strong></td>
+										<td>{{ policy.insurance_company.name if policy.insurance_company else 'N/A' }}</td>
+										<td>{{ policy.policy_type }}</td>
+										<td>{{ policy.effective_date.strftime('%Y-%m-%d') if policy.effective_date else 'N/A' }}</td>
+										<td>{{ policy.expiry_date.strftime('%Y-%m-%d') if policy.expiry_date else 'N/A' }}</td>
+										<td>
+											{% if policy.status == 'Active' %}
+												<span class="badge bg-success">{{ policy.status }}</span>
+											{% elif policy.status == 'Expired' %}
+												<span class="badge bg-secondary">{{ policy.status }}</span>
+											{% else %}
+												<span class="badge bg-danger">{{ policy.status }}</span>
+											{% endif %}
+										</td>
+										<td>KES {{ "{:,.2f}".format(policy.premium_amount) if policy.premium_amount else '0.00' }}</td>
+										<td>
+											<a href="{{ url_for('customer_view_policy_detail', policy_id=policy.id) }}" 
+											   class="btn btn-sm btn-info">
+												<i class="bi bi-eye"></i> View Details
+											</a>
+										</td>
+									</tr>
+									{% endfor %}
+								</tbody>
+							</table>
+						</div>
+						{% else %}
+						<div class="text-center py-4">
+							<i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
+							<p class="text-muted mt-2">No policies found for this vehicle</p>
+						</div>
+						{% endif %}
+					</div>
+				</div>
+
+				<!-- Claims Section -->
+				<div class="card shadow-sm mb-4">
+					<div class="card-header bg-danger text-white">
+						<h5 class="mb-0"><i class="bi bi-file-earmark-medical"></i> Claims History ({{ claims|length }})</h5>
+					</div>
+					<div class="card-body">
+						{% if claims %}
+						<div class="table-responsive">
+							<table class="table table-hover mb-0">
+								<thead class="table-light">
+									<tr>
+										<th>Claim Number</th>
+										<th>Policy Number</th>
+										<th>Accident Date</th>
+										<th>Location</th>
+										<th>Status</th>
+										<th>Date Submitted</th>
+										<th>Action</th>
+									</tr>
+								</thead>
+								<tbody>
+									{% for claim in claims %}
+									<tr>
+										<td><strong>{{ claim.claim_number }}</strong></td>
+										<td>{{ claim.policy.policy_number if claim.policy else 'N/A' }}</td>
+										<td>{{ claim.accident_date.strftime('%Y-%m-%d') if claim.accident_date else 'N/A' }}</td>
+										<td>{{ claim.accident_location }}</td>
+										<td>
+											{% if claim.status == 'Approved' %}
+												<span class="badge bg-success">{{ claim.status }}</span>
+											{% elif claim.status == 'Pending' %}
+												<span class="badge bg-warning text-dark">{{ claim.status }}</span>
+											{% elif claim.status == 'Under Review' %}
+												<span class="badge bg-info">{{ claim.status }}</span>
+											{% else %}
+												<span class="badge bg-danger">{{ claim.status }}</span>
+											{% endif %}
+										</td>
+										<td>{{ claim.date_submitted.strftime('%Y-%m-%d') if claim.date_submitted else 'N/A' }}</td>
+										<td>
+											<a href="{{ url_for('customer_view_claim_detail', claim_id=claim.id) }}" 
+											   class="btn btn-sm btn-info">
+												<i class="bi bi-eye"></i> View Details
+											</a>
+										</td>
+									</tr>
+									{% endfor %}
+								</tbody>
+							</table>
+						</div>
+						{% else %}
+						<div class="text-center py-4">
+							<i class="bi bi-check-circle text-success" style="font-size: 3rem;"></i>
+							<p class="text-success mt-2 fw-bold">No claims history - Clean record!</p>
+						</div>
+						{% endif %}
+					</div>
+				</div>
+			</div>
+		</main>
+	</div>
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+{% endblock %}
