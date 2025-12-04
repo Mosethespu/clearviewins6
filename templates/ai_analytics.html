@@ -1,0 +1,459 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid py-4">
+	<div class="row">
+		<!-- Sidebar -->
+		<aside class="col-12 col-md-3 col-lg-2 mb-4 mb-md-0">
+			<div class="dashboard-sidebar p-3 bg-light rounded shadow-sm">
+				<h6 class="text-uppercase text-muted mb-3">AI Analytics</h6>
+				<div class="d-grid gap-2">
+					{% if user_type == 'admin' %}
+						<a class="btn btn-outline-danger sidebar-btn" href="{{ url_for('admin_dashboard') }}">
+							<i class="bi bi-speedometer2"></i> Dashboard
+						</a>
+					{% elif user_type == 'customer' %}
+						<a class="btn btn-outline-primary sidebar-btn" href="{{ url_for('customer_dashboard') }}">
+							<i class="bi bi-house"></i> Dashboard
+						</a>
+					{% elif user_type == 'insurer' %}
+						<a class="btn btn-outline-info sidebar-btn" href="{{ url_for('insurer_dashboard') }}">
+							<i class="bi bi-house"></i> Dashboard
+						</a>
+					{% elif user_type == 'regulator' %}
+						<a class="btn btn-outline-warning sidebar-btn" href="{{ url_for('regulator_dashboard') }}">
+							<i class="bi bi-house"></i> Dashboard
+						</a>
+					{% endif %}
+					
+					<button class="btn btn-outline-secondary sidebar-btn" onclick="clearChat()">
+						<i class="bi bi-trash"></i> Clear History
+					</button>
+					
+					<button class="btn btn-outline-success sidebar-btn" onclick="exportChat()">
+						<i class="bi bi-download"></i> Export Chat
+					</button>
+				</div>
+				
+				<!-- Data Context Card -->
+				<div class="card mt-3 shadow-sm">
+					<div class="card-header bg-info text-white">
+						<h6 class="mb-0"><i class="bi bi-database"></i> Your Data Summary</h6>
+					</div>
+					<div class="card-body p-2">
+						<small class="text-muted">
+							{% if context.data %}
+								{% for key, value in context.data.items() %}
+									<div class="d-flex justify-content-between mb-1">
+										<span>{{ key.replace('_', ' ').title() }}:</span>
+										<strong>{{ value }}</strong>
+									</div>
+								{% endfor %}
+							{% else %}
+								<p class="mb-0">Loading data...</p>
+							{% endif %}
+						</small>
+					</div>
+				</div>
+			</div>
+		</aside>
+
+		<!-- Main Content -->
+		<main class="col-12 col-md-9 col-lg-10">
+			<div class="px-2 px-md-3">
+				<!-- Header -->
+				<div class="d-flex justify-content-between align-items-center mb-3">
+					<div>
+						<h3 class="fw-bold mb-1">
+							<i class="bi bi-robot"></i> AI Analytics Assistant
+						</h3>
+						<p class="text-muted mb-0">Ask questions about your insurance data and get intelligent insights</p>
+					</div>
+					<div>
+						{% if ollama_available %}
+							<span class="badge bg-success">
+								<i class="bi bi-circle-fill"></i> AI Online
+							</span>
+						{% else %}
+							<span class="badge bg-danger">
+								<i class="bi bi-circle-fill"></i> AI Offline
+							</span>
+						{% endif %}
+					</div>
+				</div>
+
+				{% if not ollama_available %}
+				<!-- Setup Instructions -->
+				<div class="alert alert-warning alert-dismissible fade show" role="alert">
+					<h5 class="alert-heading"><i class="bi bi-exclamation-triangle"></i> Ollama Not Running</h5>
+					<p>The AI service is not available. Please follow these steps to set it up:</p>
+					<ol class="mb-0">
+						<li>Install Ollama: <code>curl -fsSL https://ollama.com/install.sh | sh</code></li>
+						<li>Start Ollama: <code>ollama serve</code></li>
+						<li>Pull the model: <code>ollama pull llama3.2:3b</code></li>
+						<li>Refresh this page</li>
+					</ol>
+					<hr>
+					<p class="mb-0">
+						<strong>For more help:</strong> 
+						<a href="https://ollama.com/download" target="_blank" class="alert-link">Download Ollama</a>
+					</p>
+					<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+				</div>
+				{% endif %}
+
+				<!-- Chat Container -->
+				<div class="card shadow-sm mb-3" style="height: 600px; display: flex; flex-direction: column;">
+					<div class="card-body p-0" style="display: flex; flex-direction: column; height: 100%;">
+						<!-- Chat Messages Area -->
+						<div id="chatMessages" class="flex-grow-1 p-3 overflow-auto" style="background-color: #f8f9fa;">
+							<!-- Welcome Message -->
+							<div class="alert alert-info mb-3">
+								<h6 class="mb-2"><i class="bi bi-lightbulb"></i> How can I help you today?</h6>
+								<p class="mb-2">I can help you with:</p>
+								<ul class="mb-0 small">
+									{% if user_type == 'admin' %}
+										<li>System-wide statistics and trends</li>
+										<li>User management insights</li>
+										<li>Performance analytics</li>
+										<li>Compliance and operational efficiency</li>
+									{% elif user_type == 'customer' %}
+										<li>Your policy details and status</li>
+										<li>Claims information and recommendations</li>
+										<li>Renewal suggestions</li>
+										<li>Coverage optimization tips</li>
+									{% elif user_type == 'insurer' %}
+										<li>Policy performance analysis</li>
+										<li>Claims trends and patterns</li>
+										<li>Risk assessment insights</li>
+										<li>Customer behavior analytics</li>
+									{% elif user_type == 'regulator' %}
+										<li>Industry compliance metrics</li>
+										<li>Market oversight data</li>
+										<li>Regulatory trend analysis</li>
+										<li>Risk monitoring insights</li>
+									{% endif %}
+								</ul>
+							</div>
+
+							<!-- Sample Questions -->
+							<div class="mb-3">
+								<h6 class="text-muted mb-2">Try asking:</h6>
+								<div class="d-flex flex-wrap gap-2">
+									{% if user_type == 'admin' %}
+										<button class="btn btn-sm btn-outline-primary" onclick="sendSampleQuestion('What are the current system trends?')">System Trends</button>
+										<button class="btn btn-sm btn-outline-primary" onclick="sendSampleQuestion('Show me user activity insights')">User Activity</button>
+										<button class="btn btn-sm btn-outline-primary" onclick="sendSampleQuestion('What areas need improvement?')">Areas to Improve</button>
+									{% elif user_type == 'customer' %}
+										<button class="btn btn-sm btn-outline-primary" onclick="sendSampleQuestion('What is my policy status?')">Policy Status</button>
+										<button class="btn btn-sm btn-outline-primary" onclick="sendSampleQuestion('Do I have any expiring policies?')">Expiring Policies</button>
+										<button class="btn btn-sm btn-outline-primary" onclick="sendSampleQuestion('What coverage should I consider?')">Coverage Advice</button>
+									{% elif user_type == 'insurer' %}
+										<button class="btn btn-sm btn-outline-primary" onclick="sendSampleQuestion('What are my top performing policies?')">Top Policies</button>
+										<button class="btn btn-sm btn-outline-primary" onclick="sendSampleQuestion('Show me claims analysis')">Claims Analysis</button>
+										<button class="btn btn-sm btn-outline-primary" onclick="sendSampleQuestion('What are the risk patterns?')">Risk Patterns</button>
+									{% elif user_type == 'regulator' %}
+										<button class="btn btn-sm btn-outline-primary" onclick="sendSampleQuestion('Show compliance overview')">Compliance Overview</button>
+										<button class="btn btn-sm btn-outline-primary" onclick="sendSampleQuestion('What are industry trends?')">Industry Trends</button>
+										<button class="btn btn-sm btn-outline-primary" onclick="sendSampleQuestion('Any compliance concerns?')">Concerns</button>
+									{% endif %}
+								</div>
+							</div>
+						</div>
+
+						<!-- Chat Input Area -->
+						<div class="border-top p-3 bg-white">
+							<form id="chatForm" onsubmit="sendMessage(event)">
+								<div class="input-group">
+									<input 
+										type="text" 
+										id="messageInput" 
+										class="form-control" 
+										placeholder="Type your question here..." 
+										{% if not ollama_available %}disabled{% endif %}
+										autocomplete="off"
+									>
+									<button 
+										class="btn btn-primary" 
+										type="submit" 
+										id="sendBtn"
+										{% if not ollama_available %}disabled{% endif %}
+									>
+										<i class="bi bi-send"></i> Send
+									</button>
+								</div>
+								<small class="text-muted">Powered by Llama 3.2 3B running locally on your machine</small>
+							</form>
+						</div>
+					</div>
+				</div>
+			</div>
+		</main>
+	</div>
+</div>
+
+<style>
+	#chatMessages {
+		scroll-behavior: smooth;
+	}
+	
+	.user-message {
+		background-color: #007bff;
+		color: white;
+		padding: 10px 15px;
+		border-radius: 15px 15px 5px 15px;
+		margin-bottom: 10px;
+		max-width: 70%;
+		margin-left: auto;
+		word-wrap: break-word;
+	}
+	
+	.ai-message {
+		background-color: white;
+		border: 1px solid #dee2e6;
+		padding: 10px 15px;
+		border-radius: 15px 15px 15px 5px;
+		margin-bottom: 10px;
+		max-width: 70%;
+		margin-right: auto;
+		word-wrap: break-word;
+	}
+	
+	.message-timestamp {
+		font-size: 0.75rem;
+		color: #6c757d;
+		margin-top: 5px;
+	}
+	
+	.typing-indicator {
+		display: flex;
+		align-items: center;
+		gap: 5px;
+		padding: 10px 15px;
+		background-color: white;
+		border: 1px solid #dee2e6;
+		border-radius: 15px;
+		max-width: 70px;
+		margin-bottom: 10px;
+	}
+	
+	.typing-indicator span {
+		width: 8px;
+		height: 8px;
+		background-color: #6c757d;
+		border-radius: 50%;
+		animation: bounce 1.4s infinite ease-in-out both;
+	}
+	
+	.typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+	.typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+	
+	@keyframes bounce {
+		0%, 80%, 100% { transform: scale(0); }
+		40% { transform: scale(1); }
+	}
+</style>
+
+<script>
+	let sessionId = generateUUID();
+	
+	function generateUUID() {
+		return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+			var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+			return v.toString(16);
+		});
+	}
+	
+	function sendMessage(event) {
+		event.preventDefault();
+		
+		const input = document.getElementById('messageInput');
+		const message = input.value.trim();
+		
+		if (!message) return;
+		
+		// Display user message
+		addMessageToChat(message, 'user');
+		
+		// Clear input
+		input.value = '';
+		
+		// Disable input while processing
+		input.disabled = true;
+		document.getElementById('sendBtn').disabled = true;
+		
+		// Show typing indicator
+		showTypingIndicator();
+		
+		// Send to API
+		fetch('/api/ai-chat', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({
+				message: message,
+				session_id: sessionId
+			})
+		})
+		.then(response => response.json())
+		.then(data => {
+			// Remove typing indicator
+			removeTypingIndicator();
+			
+			if (data.error) {
+				if (data.setup_required) {
+					addMessageToChat(data.error + ' ' + (data.message || ''), 'error');
+				} else {
+					addMessageToChat('Error: ' + data.error, 'error');
+				}
+			} else {
+				addMessageToChat(data.response, 'ai');
+			}
+			
+			// Re-enable input
+			input.disabled = false;
+			document.getElementById('sendBtn').disabled = false;
+			input.focus();
+		})
+		.catch(error => {
+			removeTypingIndicator();
+			addMessageToChat('Error: Unable to connect to AI service. ' + error.message, 'error');
+			input.disabled = false;
+			document.getElementById('sendBtn').disabled = false;
+		});
+	}
+	
+	function sendSampleQuestion(question) {
+		document.getElementById('messageInput').value = question;
+		document.getElementById('chatForm').dispatchEvent(new Event('submit'));
+	}
+	
+	function addMessageToChat(message, type) {
+		const chatMessages = document.getElementById('chatMessages');
+		const messageDiv = document.createElement('div');
+		
+		if (type === 'user') {
+			messageDiv.className = 'user-message';
+			messageDiv.innerHTML = `
+				<div>${escapeHtml(message)}</div>
+				<div class="message-timestamp">${new Date().toLocaleTimeString()}</div>
+			`;
+		} else if (type === 'ai') {
+			messageDiv.className = 'ai-message';
+			messageDiv.innerHTML = `
+				<div><i class="bi bi-robot text-primary"></i> ${formatAIResponse(message)}</div>
+				<div class="message-timestamp">${new Date().toLocaleTimeString()}</div>
+			`;
+		} else if (type === 'error') {
+			messageDiv.className = 'alert alert-danger';
+			messageDiv.innerHTML = `<i class="bi bi-exclamation-circle"></i> ${escapeHtml(message)}`;
+		}
+		
+		chatMessages.appendChild(messageDiv);
+		chatMessages.scrollTop = chatMessages.scrollHeight;
+	}
+	
+	function showTypingIndicator() {
+		const chatMessages = document.getElementById('chatMessages');
+		const indicator = document.createElement('div');
+		indicator.id = 'typingIndicator';
+		indicator.className = 'typing-indicator';
+		indicator.innerHTML = '<span></span><span></span><span></span>';
+		chatMessages.appendChild(indicator);
+		chatMessages.scrollTop = chatMessages.scrollHeight;
+	}
+	
+	function removeTypingIndicator() {
+		const indicator = document.getElementById('typingIndicator');
+		if (indicator) {
+			indicator.remove();
+		}
+	}
+	
+	function formatAIResponse(text) {
+		// Simple formatting for AI responses
+		text = escapeHtml(text);
+		
+		// Convert markdown-style bold
+		text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+		
+		// Convert line breaks
+		text = text.replace(/\n/g, '<br>');
+		
+		// Convert numbered lists
+		text = text.replace(/(\d+\.\s)/g, '<br>$1');
+		
+		return text;
+	}
+	
+	function escapeHtml(text) {
+		const div = document.createElement('div');
+		div.textContent = text;
+		return div.innerHTML;
+	}
+	
+	function clearChat() {
+		if (!confirm('Are you sure you want to clear your chat history?')) {
+			return;
+		}
+		
+		fetch('/api/ai-chat/clear', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			}
+		})
+		.then(response => response.json())
+		.then(data => {
+			if (data.message) {
+				alert('Chat history cleared successfully');
+				location.reload();
+			} else {
+				alert('Error: ' + data.error);
+			}
+		})
+		.catch(error => {
+			alert('Error: Unable to clear chat history');
+		});
+	}
+	
+	function exportChat() {
+		fetch('/api/ai-chat/history')
+		.then(response => response.json())
+		.then(data => {
+			if (data.chats) {
+				let csvContent = 'Timestamp,Question,Response\n';
+				data.chats.forEach(chat => {
+					const timestamp = new Date(chat.timestamp).toLocaleString();
+					const question = chat.message.replace(/"/g, '""');
+					const response = chat.response.replace(/"/g, '""');
+					csvContent += `"${timestamp}","${question}","${response}"\n`;
+				});
+				
+				const blob = new Blob([csvContent], { type: 'text/csv' });
+				const url = window.URL.createObjectURL(blob);
+				const a = document.createElement('a');
+				a.href = url;
+				a.download = `ai_chat_history_${new Date().toISOString().split('T')[0]}.csv`;
+				a.click();
+				window.URL.revokeObjectURL(url);
+			} else {
+				alert('Error: ' + data.error);
+			}
+		})
+		.catch(error => {
+			alert('Error: Unable to export chat history');
+		});
+	}
+	
+	// Auto-focus on input when page loads
+	document.addEventListener('DOMContentLoaded', function() {
+		const input = document.getElementById('messageInput');
+		if (input && !input.disabled) {
+			input.focus();
+		}
+	});
+</script>
+
+{% endblock %}

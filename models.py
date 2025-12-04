@@ -421,3 +421,15 @@ class ContactMessage(db.Model):
 	# Relationship
 	reader = db.relationship('Admin', backref='read_contact_messages')
 
+
+class AIChat(db.Model):
+	"""AI Analytics Chat History"""
+	id = db.Column(db.Integer, primary_key=True)
+	user_type = db.Column(db.String(20), nullable=False)  # 'admin', 'customer', 'insurer', 'regulator'
+	user_id = db.Column(db.Integer, nullable=False)
+	message = db.Column(db.Text, nullable=False)
+	response = db.Column(db.Text, nullable=False)
+	context_data = db.Column(db.Text, nullable=True)  # JSON string of context
+	created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+	session_id = db.Column(db.String(100), nullable=True)  # Group related chats
+

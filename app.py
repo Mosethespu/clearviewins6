@@ -2,15 +2,18 @@
 from flask import Flask, render_template, redirect, url_for, flash, request, jsonify, send_from_directory, session, Response
 from config import Config
 from extension import db, login_manager, migrate, cache
-from models import Admin, Customer, Insurer, Regulator, InsuranceCompany, InsurerRequest, RegulatoryBody, RegulatorRequest, Policy, PolicyPhoto, Claim, ClaimDocument, PremiumRate, Quote, CustomerMonitoredPolicy, CustomerPolicyRequest, PolicyCancellationRequest, PolicyRenewalRequest, BlogPost, ContactMessage
+from models import Admin, Customer, Insurer, Regulator, InsuranceCompany, InsurerRequest, RegulatoryBody, RegulatorRequest, Policy, PolicyPhoto, Claim, ClaimDocument, PremiumRate, Quote, CustomerMonitoredPolicy, CustomerPolicyRequest, PolicyCancellationRequest, PolicyRenewalRequest, BlogPost, ContactMessage, AIChat
 from forms import SignupForm, LoginForm, InsurerAccessRequestForm, RegulatorAccessRequestForm, PolicyCreationForm, ClaimForm
 from flask_login import login_user, logout_user, current_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from decorators import admin_required, customer_required, insurer_required, regulator_required
+from llmservice import ollama_service, get_ai_analytics_context
 from datetime import datetime, date, timedelta
 import os
 import csv
+import json
+import uuid
 from io import StringIO
 
 app = Flask(__name__)
@@ -3814,6 +3817,263 @@ def regulator_export_reports_csv():
 		mimetype='text/csv',
 		headers={'Content-Disposition': f'attachment; filename=clearview_regulator_report_{export_type}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'}
 	)
+
+
+# ==================== AI ANALYTICS ROUTES ====================
+
+@app.route('/admin/ai-analytics')
+@login_required
+@admin_required
+def admin_ai_analytics():
+	"""AI Analytics page for Admin"""
+	# Get context data for AI
+	context = get_ai_analytics_context('admin', current_user.id, {})
+	
+	# Get recent chat history
+	recent_chats = AIChat.query.filter_by(
+		user_type='admin',
+		user_id=current_user.id
+	).order_by(AIChat.created_at.desc()).limit(10).all()
+	
+	# Check Ollama availability
+	ollama_available = ollama_service.check_availability()
+	
+	return render_template(
+		'ai_analytics.html',
+		context=context,
+		recent_chats=recent_chats,
+		ollama_available=ollama_available,
+		user_type='admin'
+	)
+
+
+@app.route('/customer/ai-analytics')
+@login_required
+@customer_required
+def customer_ai_analytics():
+	"""AI Analytics page for Customer"""
+	# Get context data for AI
+	context = get_ai_analytics_context('customer', current_user.id, {})
+	
+	# Get recent chat history
+	recent_chats = AIChat.query.filter_by(
+		user_type='customer',
+		user_id=current_user.id
+	).order_by(AIChat.created_at.desc()).limit(10).all()
+	
+	# Check Ollama availability
+	ollama_available = ollama_service.check_availability()
+	
+	return render_template(
+		'ai_analytics.html',
+		context=context,
+		recent_chats=recent_chats,
+		ollama_available=ollama_available,
+		user_type='customer'
+	)
+
+
+@app.route('/insurer/ai-analytics')
+@login_required
+@insurer_required
+def insurer_ai_analytics():
+	"""AI Analytics page for Insurer"""
+	# Get context data for AI
+	context = get_ai_analytics_context('insurer', current_user.id, {})
+	
+	# Get recent chat history
+	recent_chats = AIChat.query.filter_by(
+		user_type='insurer',
+		user_id=current_user.id
+	).order_by(AIChat.created_at.desc()).limit(10).all()
+	
+	# Check Ollama availability
+	ollama_available = ollama_service.check_availability()
+	
+	return render_template(
+		'ai_analytics.html',
+		context=context,
+		recent_chats=recent_chats,
+		ollama_available=ollama_available,
+		user_type='insurer'
+	)
+
+
+@app.route('/regulator/ai-analytics')
+@login_required
+@regulator_required
+def regulator_ai_analytics():
+	"""AI Analytics page for Regulator"""
+	# Get context data for AI
+	context = get_ai_analytics_context('regulator', current_user.id, {})
+	
+	# Get recent chat history
+	recent_chats = AIChat.query.filter_by(
+		user_type='regulator',
+		user_id=current_user.id
+	).order_by(AIChat.created_at.desc()).limit(10).all()
+	
+	# Check Ollama availability
+	ollama_available = ollama_service.check_availability()
+	
+	return render_template(
+		'ai_analytics.html',
+		context=context,
+		recent_chats=recent_chats,
+		ollama_available=ollama_available,
+		user_type='regulator'
+	)
+
+
+@app.route('/api/ai-chat', methods=['POST'])
+@login_required
+def ai_chat():
+	"""API endpoint for AI chat"""
+	try:
+		data = request.get_json()
+		message = data.get('message', '').strip()
+		session_id = data.get('session_id', str(uuid.uuid4()))
+		
+		if not message:
+			return jsonify({'error': 'Message is required'}), 400
+		
+		# Determine user type
+		user_type = None
+		user_id = None
+		
+		if isinstance(current_user, Admin):
+			user_type = 'admin'
+			user_id = current_user.id
+		elif isinstance(current_user, Customer):
+			user_type = 'customer'
+			user_id = current_user.id
+		elif isinstance(current_user, Insurer):
+			user_type = 'insurer'
+			user_id = current_user.id
+		elif isinstance(current_user, Regulator):
+			user_type = 'regulator'
+			user_id = current_user.id
+		
+		if not user_type:
+			return jsonify({'error': 'Invalid user type'}), 403
+		
+		# Check if Ollama is available
+		if not ollama_service.check_availability():
+			return jsonify({
+				'error': 'Ollama is not running. Please start Ollama first.',
+				'message': 'To start Ollama, run: ollama serve',
+				'setup_required': True
+			}), 503
+		
+		# Get context for the user
+		context = get_ai_analytics_context(user_type, user_id, {})
+		
+		# Generate AI response
+		response = ollama_service.generate_response(message, context)
+		
+		# Save chat to database
+		chat = AIChat(
+			user_type=user_type,
+			user_id=user_id,
+			message=message,
+			response=response,
+			context_data=json.dumps(context.get('data', {})),
+			session_id=session_id
+		)
+		db.session.add(chat)
+		db.session.commit()
+		
+		return jsonify({
+			'response': response,
+			'session_id': session_id,
+			'timestamp': chat.created_at.isoformat()
+		})
+		
+	except Exception as e:
+		return jsonify({'error': f'An error occurred: {str(e)}'}), 500
+
+
+@app.route('/api/ai-chat/history')
+@login_required
+def ai_chat_history():
+	"""Get chat history for current user"""
+	try:
+		# Determine user type
+		user_type = None
+		user_id = None
+		
+		if isinstance(current_user, Admin):
+			user_type = 'admin'
+			user_id = current_user.id
+		elif isinstance(current_user, Customer):
+			user_type = 'customer'
+			user_id = current_user.id
+		elif isinstance(current_user, Insurer):
+			user_type = 'insurer'
+			user_id = current_user.id
+		elif isinstance(current_user, Regulator):
+			user_type = 'regulator'
+			user_id = current_user.id
+		
+		if not user_type:
+			return jsonify({'error': 'Invalid user type'}), 403
+		
+		limit = request.args.get('limit', 20, type=int)
+		
+		chats = AIChat.query.filter_by(
+			user_type=user_type,
+			user_id=user_id
+		).order_by(AIChat.created_at.desc()).limit(limit).all()
+		
+		return jsonify({
+			'chats': [{
+				'id': chat.id,
+				'message': chat.message,
+				'response': chat.response,
+				'timestamp': chat.created_at.isoformat()
+			} for chat in chats]
+		})
+		
+	except Exception as e:
+		return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/ai-chat/clear', methods=['POST'])
+@login_required
+def ai_chat_clear():
+	"""Clear chat history for current user"""
+	try:
+		# Determine user type
+		user_type = None
+		user_id = None
+		
+		if isinstance(current_user, Admin):
+			user_type = 'admin'
+			user_id = current_user.id
+		elif isinstance(current_user, Customer):
+			user_type = 'customer'
+			user_id = current_user.id
+		elif isinstance(current_user, Insurer):
+			user_type = 'insurer'
+			user_id = current_user.id
+		elif isinstance(current_user, Regulator):
+			user_type = 'regulator'
+			user_id = current_user.id
+		
+		if not user_type:
+			return jsonify({'error': 'Invalid user type'}), 403
+		
+		AIChat.query.filter_by(
+			user_type=user_type,
+			user_id=user_id
+		).delete()
+		db.session.commit()
+		
+		return jsonify({'message': 'Chat history cleared successfully'})
+		
+	except Exception as e:
+		return jsonify({'error': str(e)}), 500
+
 
 @app.route('/uploads/<path:filename>')
 @login_required
